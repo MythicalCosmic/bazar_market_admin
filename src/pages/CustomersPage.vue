@@ -1,50 +1,26 @@
 <template>
   <div>
-    <v-card rounded="xl" class="pa-4 mb-4" style="border:1px solid rgba(0,0,0,0.07)">
-      <v-row dense align="center">
-        <v-col cols="12" sm="5">
-          <v-text-field
-            v-model="f.q"
-            placeholder="Ism, telefon, username..."
-            prepend-inner-icon="mdi-magnify"
-            clearable hide-details
-            @update:model-value="debounce"
-          />
-        </v-col>
-        <v-col cols="6" sm="3">
-          <v-select
-            v-model="f.is_active"
-            :items="activeOptions"
-            item-title="t" item-value="v"
-            placeholder="Holat" clearable hide-details
-            @update:model-value="load"
-          />
-        </v-col>
-        <v-col cols="6" sm="4" class="d-flex justify-end">
-          <v-chip variant="tonal" color="primary">Jami: {{ total }} ta mijoz</v-chip>
-        </v-col>
-      </v-row>
-    </v-card>
+    <BzPageHeader title="Mijozlar" :subtitle="total ? `${total} ta jami` : ''" />
 
-    <v-card rounded="xl" style="border:1px solid rgba(0,0,0,0.07)">
-      <v-data-table
-        :headers="headers"
-        :items="customers"
-        :loading="loading"
-        hide-default-footer
-        :items-per-page="f.per_page"
-      >
+    <BzFilterBar v-model:search-value="f.q" search-placeholder="Ism, telefon, telegram…" @search="onSearch">
+      <v-select v-model="f.is_active" :items="activeOptions" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:170px" @update:model-value="load" />
+    </BzFilterBar>
+
+    <v-card rounded="xl" class="bz-card">
+      <v-data-table :headers="headers" :items="customers" :loading="loading" hide-default-footer :items-per-page="f.per_page">
         <template #item.name="{ item }">
-          <div>
-            <div style="font-weight:700;font-size:13px">
-              {{ [item.first_name, item.last_name].filter(Boolean).join(' ') || '—' }}
+          <div class="d-flex align-center ga-3">
+            <v-avatar size="36" color="primary" variant="tonal">
+              <span style="font-size:12px;font-weight:800">{{ fmt.initials(item.first_name, item.last_name) }}</span>
+            </v-avatar>
+            <div>
+              <div style="font-weight:700;font-size:13px">{{ fmt.fullName(item) }}</div>
+              <div style="font-size:11px;color:var(--bz-text-3)">
+                <v-icon v-if="item.telegram_id" size="11" color="info">mdi-telegram</v-icon>
+                {{ item.phone || '—' }}
+              </div>
             </div>
-            <div style="font-size:11px;color:#94A3B8">@{{ item.username }}</div>
           </div>
-        </template>
-
-        <template #item.phone="{ item }">
-          <span style="font-size:13px">{{ item.phone || '—' }}</span>
         </template>
 
         <template #item.is_active="{ item }">
@@ -53,8 +29,12 @@
           </v-chip>
         </template>
 
+        <template #item.last_seen_at="{ item }">
+          <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.relativeTime(item.last_seen_at) }}</span>
+        </template>
+
         <template #item.created_at="{ item }">
-          <span style="font-size:12px;color:#64748B">{{ fmt.date(item.created_at) }}</span>
+          <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.date(item.created_at) }}</span>
         </template>
 
         <template #item.actions="{ item }">
@@ -63,15 +43,13 @@
           </v-btn>
         </template>
 
-        <template #loading><PageLoader :size="36" /></template>
-        <template #no-data>
-          <EmptyState icon="mdi-account-group-outline" title="Mijozlar topilmadi" />
-        </template>
+        <template #loading><BzSkeleton v-for="n in 5" :key="n" type="row" /></template>
+        <template #no-data><BzEmptyState icon="mdi-account-group-outline" title="Mijozlar topilmadi" /></template>
       </v-data-table>
 
       <v-divider />
-      <div class="d-flex align-center justify-space-between px-4 py-3">
-        <div style="font-size:13px;color:#64748B">Jami: <b>{{ total }}</b> ta</div>
+      <div class="d-flex align-center justify-space-between px-4 py-3 ga-3">
+        <div style="font-size:13px;color:var(--bz-text-3)">Jami: <b style="color:var(--bz-text-1)">{{ total }}</b> ta</div>
         <v-pagination v-model="f.page" :length="pages" :total-visible="5" size="small" rounded="lg" @update:model-value="load" />
         <v-select v-model="f.per_page" :items="[10,20,50]" hide-details density="compact" style="max-width:85px" @update:model-value="load" />
       </div>
@@ -83,10 +61,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { customersApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
-import PageLoader from '@/components/common/PageLoader.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import BzPageHeader from '@/components/common/BzPageHeader.vue'
+import BzFilterBar  from '@/components/common/BzFilterBar.vue'
+import BzEmptyState from '@/components/common/BzEmptyState.vue'
+import BzSkeleton   from '@/components/common/BzSkeleton.vue'
 
-const fmt       = useFormat()
+const fmt = useFormat()
 const customers = ref([])
 const loading   = ref(false)
 const total     = ref(0)
@@ -95,23 +75,19 @@ const pages     = computed(() => Math.ceil(total.value / f.value.per_page))
 const f = ref({ q: '', is_active: null, page: 1, per_page: 20, order_by: '-created_at' })
 
 const headers = [
-  { title: 'Mijoz',    key: 'name',       sortable: false },
-  { title: 'Telefon',  key: 'phone',      sortable: false },
-  { title: 'Holat',    key: 'is_active',  width: 120 },
-  { title: 'Sanasi',   key: 'created_at', width: 140 },
-  { title: '',         key: 'actions',    width: 50, sortable: false },
+  { title: 'Mijoz',     key: 'name',         sortable: false },
+  { title: 'Holat',     key: 'is_active',    width: 120 },
+  { title: 'Oxirgi',    key: 'last_seen_at', width: 150 },
+  { title: 'Sanasi',    key: 'created_at',   width: 130 },
+  { title: '',          key: 'actions',      width: 50, sortable: false },
 ]
 
 const activeOptions = [
-  { t: 'Faol',      v: true },
-  { t: 'Bloklangan',v: false },
+  { t: 'Faol',       v: 'true' },
+  { t: 'Bloklangan', v: 'false' },
 ]
 
-let timer
-function debounce() {
-  clearTimeout(timer)
-  timer = setTimeout(() => { f.value.page = 1; load() }, 400)
-}
+function onSearch() { f.value.page = 1; load() }
 
 async function load() {
   loading.value = true
@@ -119,8 +95,7 @@ async function load() {
     const { data } = await customersApi.list(fmt.cleanParams({ ...f.value }))
     customers.value = data.data?.items || data.data || []
     total.value     = data.data?.total || 0
-  } catch {}
-  finally { loading.value = false }
+  } catch {} finally { loading.value = false }
 }
 
 onMounted(load)

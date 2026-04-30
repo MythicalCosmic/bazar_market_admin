@@ -1,117 +1,180 @@
 <template>
   <div>
-    <!-- Stat cards -->
-    <v-row class="mb-5" dense>
-      <v-col v-for="s in stats" :key="s.key" cols="12" sm="6" xl="3">
-        <v-card class="stat-card pa-5" height="124">
-          <div class="d-flex align-start justify-space-between">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:600;color:#64748B;letter-spacing:0.3px;margin-bottom:8px">{{ s.title }}</div>
-              <div class="num" style="font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1">
-                <span v-if="loading">—</span>
-                <span v-else>{{ s.display }}</span>
-              </div>
-              <div style="font-size:12px;color:#94A3B8;margin-top:4px">{{ s.sub }}</div>
-            </div>
-            <div
-              class="d-flex align-center justify-center flex-shrink-0"
-              :style="`width:44px;height:44px;border-radius:12px;background:${s.bg}`"
-            >
-              <v-icon :color="s.color" size="22">{{ s.icon }}</v-icon>
-            </div>
-          </div>
-        </v-card>
+    <BzPageHeader title="Dashboard" :subtitle="welcomeText">
+      <template #actions>
+        <v-btn-toggle v-model="period" mandatory density="comfortable" color="primary" variant="outlined" rounded="lg">
+          <v-btn value="7"  size="small">7 kun</v-btn>
+          <v-btn value="30" size="small">30 kun</v-btn>
+          <v-btn value="90" size="small">90 kun</v-btn>
+        </v-btn-toggle>
+      </template>
+    </BzPageHeader>
+
+    <!-- KPIs -->
+    <v-row class="mb-2" dense>
+      <v-col cols="12" sm="6" lg="3">
+        <BzStatCard
+          title="Bugungi buyurtmalar"
+          :value="kpis.ordersToday"
+          :delta="kpis.ordersDelta"
+          icon="mdi-package-variant-closed"
+          color="#16A34A" bg-color="rgba(22,163,74,0.10)"
+          :series="ordersSeries" :loading="loading"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <BzStatCard
+          title="Bugungi tushum"
+          :value="kpis.revenueToday" suffix="UZS"
+          :delta="kpis.revenueDelta"
+          icon="mdi-cash-multiple"
+          color="#3B82F6" bg-color="rgba(59,130,246,0.10)"
+          :series="revenueSeries" :loading="loading"
+          :format="v => fmt.compact(v)"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <BzStatCard
+          title="Yangi mijozlar"
+          :value="kpis.newCustomers"
+          :delta="kpis.customersDelta"
+          icon="mdi-account-plus-outline"
+          color="#F59E0B" bg-color="rgba(245,158,11,0.10)"
+          :series="customersSeries" :loading="loading"
+          sub="Bu davrda"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <BzStatCard
+          title="O'rtacha buyurtma"
+          :value="kpis.avgOrder" suffix="UZS"
+          icon="mdi-chart-line"
+          color="#8B5CF6" bg-color="rgba(139,92,246,0.10)"
+          :loading="loading"
+          :format="v => fmt.compact(v)"
+        />
       </v-col>
     </v-row>
 
     <v-row>
-      <!-- Recent orders -->
+      <!-- Revenue chart -->
       <v-col cols="12" lg="8">
-        <v-card style="border:1px solid rgba(0,0,0,0.07)" rounded="xl">
-          <div class="d-flex align-center justify-space-between pa-5 pb-4">
+        <v-card rounded="xl" class="bz-card pa-5">
+          <div class="d-flex align-center justify-space-between mb-3">
             <div>
-              <div style="font-weight:700;font-size:15px">So'nggi buyurtmalar</div>
-              <div style="font-size:12px;color:#94A3B8;margin-top:2px">Oxirgi {{ recentOrders.length }} ta</div>
+              <div style="font-weight:800;font-size:15px">Tushum dinamikasi</div>
+              <div style="font-size:12px;color:var(--bz-text-3);margin-top:2px">Oxirgi {{ period }} kun</div>
+            </div>
+            <v-chip color="primary" variant="tonal" size="small" class="chip-sm">
+              <v-icon start size="12">mdi-cash</v-icon>
+              {{ fmt.price(periodRevenue) }}
+            </v-chip>
+          </div>
+          <BzSkeleton v-if="loading" type="chart" :height="280" />
+          <LineChart
+            v-else-if="revenueChart.categories.length"
+            :series="[{ name: 'Tushum', data: revenueChart.values }]"
+            :categories="revenueChart.categories"
+            :format-y="v => fmt.compact(v)"
+            :height="280"
+          />
+          <BzEmptyState v-else icon="mdi-chart-line" title="Ma'lumot yo'q" subtitle="Bu davrga tushum qayd etilmagan" />
+        </v-card>
+
+        <v-card rounded="xl" class="bz-card pa-5 mt-4">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div>
+              <div style="font-weight:800;font-size:15px">So'nggi buyurtmalar</div>
+              <div style="font-size:12px;color:var(--bz-text-3);margin-top:2px">Yangi {{ recentOrders.length }} ta</div>
             </div>
             <v-btn variant="tonal" color="primary" size="small" to="/orders" rounded="lg">
-              Barchasini ko'rish
-              <v-icon end size="15">mdi-arrow-right</v-icon>
+              Hammasi
+              <v-icon end size="14">mdi-arrow-right</v-icon>
             </v-btn>
           </div>
-          <v-divider />
-
-          <PageLoader v-if="ordersLoading" :size="36" />
-
-          <v-list v-else lines="two" class="pa-2">
-            <v-list-item
-              v-for="o in recentOrders"
-              :key="o.id"
-              :to="`/orders/${o.id}`"
-              rounded="lg"
-              class="mb-1"
-              style="min-height:60px"
-            >
-              <template #prepend>
-                <v-avatar size="38" :color="getStatus(o.status).color" variant="tonal" class="mr-3">
-                  <v-icon size="17">{{ getStatus(o.status).icon }}</v-icon>
-                </v-avatar>
-              </template>
-              <template #title>
-                <span style="font-weight:700;font-size:14px">#{{ o.order_number }}</span>
-                <StatusChip :status="o.status" class="ml-2" />
-              </template>
-              <template #subtitle>
-                <span style="font-size:12px;color:#64748B">
-                  {{ o.customer_name || 'Mijoz' }}
-                  · {{ fmt.date(o.created_at) }}
-                </span>
-              </template>
-              <template #append>
-                <span class="num font-weight-bold" style="font-size:14px">
-                  {{ fmt.price(o.total_price || o.total) }}
-                </span>
-              </template>
-            </v-list-item>
-
-            <EmptyState
-              v-if="!recentOrders.length"
-              icon="mdi-package-variant-closed"
-              title="Buyurtmalar yo'q"
-            />
-          </v-list>
+          <template v-if="ordersLoading">
+            <BzSkeleton v-for="n in 5" :key="n" type="row" />
+          </template>
+          <template v-else-if="recentOrders.length">
+            <v-list class="pa-0" rounded="lg" lines="two">
+              <v-list-item
+                v-for="o in recentOrders"
+                :key="o.id"
+                :to="`/orders/${o.id}`"
+                rounded="lg"
+                class="mb-1"
+                style="min-height:60px"
+              >
+                <template #prepend>
+                  <v-avatar size="38" :color="orderStatusColor(o.status)" variant="tonal" class="mr-3">
+                    <v-icon size="17">{{ orderStatusIcon(o.status) }}</v-icon>
+                  </v-avatar>
+                </template>
+                <template #title>
+                  <span style="font-weight:700;font-size:13.5px">#{{ o.order_number }}</span>
+                  <BzStatusChip :status="o.status" class="ml-2" />
+                </template>
+                <template #subtitle>
+                  <span style="font-size:11.5px;color:var(--bz-text-3)">
+                    {{ o.user?.first_name || o.customer_name || 'Mijoz' }} · {{ fmt.relativeTime(o.created_at) }}
+                  </span>
+                </template>
+                <template #append>
+                  <span class="num font-weight-bold" style="font-size:13.5px">{{ fmt.price(o.total_price || o.total) }}</span>
+                </template>
+              </v-list-item>
+            </v-list>
+          </template>
+          <BzEmptyState v-else icon="mdi-package-variant-closed" title="Buyurtmalar yo'q" />
         </v-card>
       </v-col>
 
-      <!-- Right panel -->
+      <!-- Right column -->
       <v-col cols="12" lg="4">
-        <!-- Order status breakdown -->
-        <v-card style="border:1px solid rgba(0,0,0,0.07)" rounded="xl" class="pa-5 mb-4">
-          <div style="font-weight:700;font-size:15px;margin-bottom:16px">Buyurtma holatlari</div>
-          <div class="d-flex flex-column" style="gap:10px">
-            <div v-for="s in statusBreakdown" :key="s.status" class="d-flex align-center ga-3">
-              <div
-                class="flex-shrink-0"
-                :style="`width:10px;height:10px;border-radius:50%;background:${s.bg}`"
-              />
-              <span style="font-size:13px;color:#64748B;flex:1">{{ s.label }}</span>
-              <span class="num font-weight-bold" style="font-size:14px">{{ s.count }}</span>
-              <div style="width:80px">
-                <v-progress-linear
-                  :model-value="s.pct"
-                  :color="s.color"
-                  height="4"
-                  rounded
-                  bg-color="grey-lighten-3"
-                />
-              </div>
-            </div>
-          </div>
+        <!-- Orders donut -->
+        <v-card rounded="xl" class="bz-card pa-5 mb-4">
+          <div style="font-weight:800;font-size:15px;margin-bottom:8px">Buyurtmalar holati</div>
+          <BzSkeleton v-if="loading" type="chart" :height="260" />
+          <DonutChart
+            v-else-if="orderStatusChart.labels.length"
+            :series="orderStatusChart.values"
+            :labels="orderStatusChart.labels"
+            :total="kpis.totalOrders"
+            total-label="Jami"
+            :height="260"
+          />
+          <BzEmptyState v-else icon="mdi-chart-donut" title="Ma'lumot yo'q" />
         </v-card>
 
-        <!-- Quick links -->
-        <v-card style="border:1px solid rgba(0,0,0,0.07)" rounded="xl" class="pa-5">
-          <div style="font-weight:700;font-size:15px;margin-bottom:12px">Tezkor harakatlar</div>
-          <div class="d-flex flex-column" style="gap:8px">
+        <!-- Top products -->
+        <v-card rounded="xl" class="bz-card pa-5 mb-4">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div style="font-weight:800;font-size:15px">Eng ko'p sevilganlar</div>
+            <v-icon size="18" color="warning">mdi-heart</v-icon>
+          </div>
+          <template v-if="favoritesLoading">
+            <BzSkeleton v-for="n in 5" :key="n" type="row" />
+          </template>
+          <template v-else-if="topFavorites.length">
+            <div v-for="(p, i) in topFavorites" :key="p.product_id" class="d-flex align-center ga-3 py-2">
+              <div style="width:24px;text-align:center;font-weight:800;color:var(--bz-text-3);font-size:12px">{{ i + 1 }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:13px">{{ p.name }}</div>
+                <div style="font-size:11.5px;color:var(--bz-text-3)">{{ fmt.price(p.price) }}</div>
+              </div>
+              <v-chip color="warning" variant="tonal" size="x-small" class="chip-sm">
+                <v-icon start size="11">mdi-heart</v-icon>
+                {{ p.favorite_count }}
+              </v-chip>
+            </div>
+          </template>
+          <BzEmptyState v-else icon="mdi-heart-off-outline" title="Ma'lumot yo'q" />
+        </v-card>
+
+        <!-- Quick actions -->
+        <v-card rounded="xl" class="bz-card pa-5">
+          <div style="font-weight:800;font-size:15px;margin-bottom:12px">Tezkor harakatlar</div>
+          <div class="d-flex flex-column ga-2">
             <v-btn
               v-for="q in quickActions"
               :key="q.to"
@@ -134,87 +197,157 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { ordersApi, customersApi, productsApi } from '@/api'
+import { ref, computed, onMounted, watch } from 'vue'
+import { ordersApi, statsApi, favoritesApi } from '@/api'
 import { useFormat, ORDER_STATUS } from '@/composables/useFormat'
-import StatusChip  from '@/components/common/StatusChip.vue'
-import EmptyState  from '@/components/common/EmptyState.vue'
-import PageLoader  from '@/components/common/PageLoader.vue'
+import { useAuthStore } from '@/stores/auth'
+import BzPageHeader from '@/components/common/BzPageHeader.vue'
+import BzStatCard   from '@/components/common/BzStatCard.vue'
+import BzStatusChip from '@/components/common/BzStatusChip.vue'
+import BzSkeleton   from '@/components/common/BzSkeleton.vue'
+import BzEmptyState from '@/components/common/BzEmptyState.vue'
+import LineChart    from '@/components/common/charts/LineChart.vue'
+import DonutChart   from '@/components/common/charts/DonutChart.vue'
 
-const fmt = useFormat()
-const loading      = ref(true)
-const ordersLoading= ref(true)
-const recentOrders = ref([])
+const fmt  = useFormat()
+const auth = useAuthStore()
 
-const stats = ref([
-  { key:'orders',    title: 'Jami buyurtmalar',  display: '—', sub: 'Barcha vaqt', icon: 'mdi-package-variant',    color: '#16A34A', bg: 'rgba(22,163,74,0.10)' },
-  { key:'revenue',   title: 'Bugungi tushum',    display: '—', sub: 'UZS',         icon: 'mdi-cash-multiple',      color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
-  { key:'customers', title: 'Jami mijozlar',     display: '—', sub: 'Ro\'yxatdan', icon: 'mdi-account-group',      color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
-  { key:'products',  title: 'Mahsulotlar',       display: '—', sub: 'Katalogda',   icon: 'mdi-cube-outline',       color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
-])
+const period      = ref('30')
+const loading     = ref(true)
+const ordersLoading   = ref(true)
+const favoritesLoading = ref(true)
 
-const statusCounts = ref({})
-
-const STATUS_COLORS = {
-  pending:   { color: 'warning', bg: '#F59E0B' },
-  confirmed: { color: 'info',    bg: '#3B82F6' },
-  preparing: { color: 'info',    bg: '#60A5FA' },
-  delivering:{ color: 'purple',  bg: '#8B5CF6' },
-  delivered: { color: 'success', bg: '#16A34A' },
-  completed: { color: 'success', bg: '#22C55E' },
-  cancelled: { color: 'error',   bg: '#EF4444' },
-}
-
-const statusBreakdown = computed(() => {
-  const total = Object.values(statusCounts.value).reduce((a, b) => a + b, 0) || 1
-  return Object.entries(ORDER_STATUS).map(([key, meta]) => ({
-    status: key,
-    label:  meta.label,
-    color:  STATUS_COLORS[key]?.color || 'grey',
-    bg:     STATUS_COLORS[key]?.bg    || '#94A3B8',
-    count:  statusCounts.value[key]   || 0,
-    pct:    Math.round(((statusCounts.value[key] || 0) / total) * 100),
-  }))
+const kpis = ref({
+  ordersToday: 0, ordersDelta: null,
+  revenueToday: 0, revenueDelta: null,
+  newCustomers: 0, customersDelta: null,
+  avgOrder: 0,
+  totalOrders: 0,
 })
 
-function getStatus(s) {
-  return { ...ORDER_STATUS[s], color: STATUS_COLORS[s]?.color || 'grey' } || { label: s, color: 'grey', icon: 'mdi-help' }
+const recentOrders = ref([])
+const topFavorites = ref([])
+
+// Time-series buckets
+const ordersSeries   = ref([])
+const revenueSeries  = ref([])
+const customersSeries = ref([])
+const revenueChart   = ref({ categories: [], values: [] })
+const orderStatusChart = ref({ labels: [], values: [] })
+const periodRevenue  = ref(0)
+
+const welcomeText = computed(() => {
+  const h = new Date().getHours()
+  const greet = h < 5 ? 'Xayrli tun' : h < 12 ? 'Xayrli tong' : h < 18 ? 'Xayrli kun' : 'Xayrli kech'
+  const name = auth.user?.first_name || auth.user?.username
+  return name ? `${greet}, ${name} 👋` : greet
+})
+
+const STATUS_BG = {
+  pending:'#F59E0B', confirmed:'#3B82F6', preparing:'#60A5FA',
+  delivering:'#8B5CF6', delivered:'#16A34A', completed:'#22C55E', cancelled:'#EF4444',
 }
+
+function orderStatusColor(s) { return ORDER_STATUS[s]?.color || 'grey' }
+function orderStatusIcon(s)  { return ORDER_STATUS[s]?.icon  || 'mdi-help' }
 
 const quickActions = [
-  { to: '/orders',    icon: 'mdi-package-variant-closed', label: "Yangi buyurtmalar", color: 'primary' },
-  { to: '/products',  icon: 'mdi-plus-box-outline',       label: "Mahsulot qo'shish", color: 'info' },
-  { to: '/discounts', icon: 'mdi-sale',                   label: "Chegirma yaratish", color: 'warning' },
-  { to: '/coupons',   icon: 'mdi-ticket-percent-outline',  label: "Kupon yaratish",   color: 'success' },
+  { to: '/orders?status=pending',     icon: 'mdi-package-variant-closed', label: "Yangi buyurtmalar",   color: 'primary' },
+  { to: '/products',  icon: 'mdi-plus-box-outline',       label: "Mahsulot qo'shish",      color: 'info' },
+  { to: '/discounts', icon: 'mdi-sale',                   label: "Chegirma yaratish",      color: 'warning' },
+  { to: '/notifications', icon: 'mdi-bell-plus-outline',  label: "Bildirishnoma yuborish", color: 'success' },
 ]
 
-onMounted(async () => {
-  const [oRes, cRes, pRes] = await Promise.allSettled([
-    ordersApi.list({ per_page: 10, order_by: '-created_at' }),
-    customersApi.list({ per_page: 1 }),
-    productsApi.list({ per_page: 1 }),
+function dateRange(days) {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - Number(days))
+  return { date_from: from.toISOString().slice(0, 10), date_to: to.toISOString().slice(0, 10) }
+}
+
+function safeArray(v) { return Array.isArray(v) ? v : [] }
+
+async function loadStats() {
+  loading.value = true
+  const range = dateRange(period.value)
+  const [oRes, pRes, cRes] = await Promise.allSettled([
+    statsApi.orders(range),
+    statsApi.payments(range),
+    statsApi.customers(range),
   ])
 
+  // Orders stats
   if (oRes.status === 'fulfilled') {
-    const d = oRes.value.data
-    recentOrders.value = d.data?.items || d.data || []
-    const tot = d.data?.total || recentOrders.value.length
-    stats.value[0].display = tot.toLocaleString() + ' ta'
-    // count statuses
-    recentOrders.value.forEach(o => {
-      statusCounts.value[o.status] = (statusCounts.value[o.status] || 0) + 1
+    const d = oRes.value.data.data || {}
+    kpis.value.totalOrders = Number(d.total || 0)
+    const series = safeArray(d.timeseries || d.series || d.daily || [])
+    ordersSeries.value = series.map(x => Number(x.count ?? x.value ?? x.orders ?? 0))
+    kpis.value.ordersToday = ordersSeries.value.at(-1) || Number(d.today || 0)
+    if (ordersSeries.value.length >= 2) {
+      const last = ordersSeries.value.at(-1)
+      const prev = ordersSeries.value.at(-2)
+      if (prev > 0) kpis.value.ordersDelta = ((last - prev) / prev) * 100
+    }
+    const byStatus = d.by_status || {}
+    const labels = []
+    const values = []
+    Object.entries(byStatus).forEach(([k, v]) => {
+      labels.push(ORDER_STATUS[k]?.label || k)
+      values.push(Number(v) || 0)
     })
-  }
-  if (cRes.status === 'fulfilled') {
-    const tot = cRes.value.data.data?.total
-    stats.value[2].display = tot ? tot.toLocaleString() + ' ta' : '—'
-  }
-  if (pRes.status === 'fulfilled') {
-    const tot = pRes.value.data.data?.total
-    stats.value[3].display = tot ? tot.toLocaleString() + ' ta' : '—'
+    orderStatusChart.value = { labels, values }
   }
 
-  loading.value       = false
-  ordersLoading.value = false
-})
+  // Payment stats
+  if (pRes.status === 'fulfilled') {
+    const d = pRes.value.data.data || {}
+    kpis.value.avgOrder    = Number(d.avg_payment || d.avg || 0)
+    periodRevenue.value    = Number(d.revenue || d.completed_amount || 0)
+    const ts = safeArray(d.timeseries || d.daily || d.series || [])
+    const cats = []
+    const vals = []
+    ts.forEach(p => {
+      cats.push((p.date || p.day || '').slice(5)) // MM-DD
+      vals.push(Number(p.amount ?? p.revenue ?? p.value ?? 0))
+    })
+    revenueChart.value = { categories: cats, values: vals }
+    revenueSeries.value = vals.slice(-12)
+    kpis.value.revenueToday = vals.at(-1) || 0
+    if (vals.length >= 2 && vals.at(-2) > 0) {
+      kpis.value.revenueDelta = ((vals.at(-1) - vals.at(-2)) / vals.at(-2)) * 100
+    }
+  }
+
+  // Customer stats
+  if (cRes.status === 'fulfilled') {
+    const d = cRes.value.data.data || {}
+    kpis.value.newCustomers = Number(d.new || d.new_count || d.total || 0)
+    const ts = safeArray(d.timeseries || d.daily || [])
+    customersSeries.value = ts.map(x => Number(x.count ?? x.new ?? x.value ?? 0))
+    if (customersSeries.value.length >= 2 && customersSeries.value.at(-2) > 0) {
+      kpis.value.customersDelta = ((customersSeries.value.at(-1) - customersSeries.value.at(-2)) / customersSeries.value.at(-2)) * 100
+    }
+  }
+
+  loading.value = false
+}
+
+async function loadRecentOrders() {
+  ordersLoading.value = true
+  try {
+    const { data } = await ordersApi.list({ per_page: 8, order_by: '-created_at' })
+    recentOrders.value = data.data?.items || data.data || []
+  } catch {} finally { ordersLoading.value = false }
+}
+
+async function loadFavorites() {
+  favoritesLoading.value = true
+  try {
+    const { data } = await favoritesApi.most(5)
+    topFavorites.value = data.data || []
+  } catch {} finally { favoritesLoading.value = false }
+}
+
+watch(period, loadStats)
+onMounted(() => { loadStats(); loadRecentOrders(); loadFavorites() })
 </script>

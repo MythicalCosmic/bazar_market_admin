@@ -8,11 +8,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@mdi/font": "^7.2.96",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/motion": "^3.0.3",
+    "apexcharts": "^5.10.6",
     "axios": "^1.4.0",
+    "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
     "pinia": "^2.1.6",
     "vue": "^3.3.4",
     "vue-router": "^4.2.4",
+    "vue3-apexcharts": "^1.11.1",
     "vuetify": "^3.3.11"
   },
   "devDependencies": {

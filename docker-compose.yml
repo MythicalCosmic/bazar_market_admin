@@ -1,0 +1,10 @@
+services:
+  admin-panel:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.bazarmarket.org/admin-api}
+    container_name: bazar-admin
+    ports:
+      - "8181:80"
+    restart: unless-stopped
