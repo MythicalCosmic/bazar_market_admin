@@ -172,6 +172,7 @@ const NAV = [
     { to: '/discounts',  icon: 'mdi-sale',                   title: 'Chegirmalar',   perm: 'manage_discounts' },
     { to: '/coupons',    icon: 'mdi-ticket-percent-outline',  title: 'Kuponlar',      perm: 'manage_coupons' },
     { to: '/banners',    icon: 'mdi-image-outline',          title: 'Bannerlar',     perm: 'manage_banners' },
+    { to: '/referral-rewards', icon: 'mdi-gift-outline', title: 'Referral',      perm: 'manage_referral_rewards' },
   ]},
   { label: 'Foydalanuvchilar', items: [
     { to: '/customers', icon: 'mdi-account-group-outline',   title: 'Mijozlar',  perm: 'view_users' },
@@ -199,7 +200,7 @@ const PAGE_TITLES = {
   products:'Mahsulotlar', categories:'Kategoriyalar',
   customers:'Mijozlar', 'customer-detail':'Mijoz',
   users:'Adminlar', roles:'Rollar va ruxsatlar',
-  discounts:'Chegirmalar', coupons:'Kuponlar', banners:'Bannerlar',
+  discounts:'Chegirmalar', coupons:'Kuponlar', banners:'Bannerlar', 'referral-rewards':'Referral mukofotlar',
   reviews:'Sharhlar', notifications:'Bildirishnomalar',
   payments:"To'lovlar", 'payment-detail':"To'lov",
   'delivery-zones':'Yetkazib berish zonalari', settings:'Sozlamalar',

@@ -18,5 +18,6 @@ export { permissionsApi }   from './permissions'
 export { settingsApi }      from './settings'
 export { favoritesApi }     from './favorites'
 export { statsApi }         from './stats'
+export { referralRewardsApi } from './referralRewards'
 
 export default api

@@ -31,6 +31,7 @@ const routes = [
       { path: 'discounts',       name: 'discounts',        component: () => import('@/pages/DiscountsPage.vue'),      meta: { perm: 'manage_discounts' } },
       { path: 'coupons',         name: 'coupons',          component: () => import('@/pages/CouponsPage.vue'),        meta: { perm: 'manage_coupons' } },
       { path: 'banners',         name: 'banners',          component: () => import('@/pages/BannersPage.vue'),        meta: { perm: 'manage_banners' } },
+      { path: 'referral-rewards', name: 'referral-rewards', component: () => import('@/pages/ReferralRewardsPage.vue'), meta: { perm: 'manage_referral_rewards' } },
 
       { path: 'reviews',         name: 'reviews',          component: () => import('@/pages/ReviewsPage.vue'),        meta: { perm: 'view_reviews' } },
       { path: 'notifications',   name: 'notifications',    component: () => import('@/pages/NotificationsPage.vue'),  meta: { perm: 'manage_notifications' } },
