@@ -277,6 +277,16 @@
             <!-- Description -->
             <v-textarea label="Tavsif (UZ)" v-model="form.description_uz" rows="3" class="mt-2" />
 
+            <!-- Section: Stock (CREATE mode — inline) -->
+            <template v-if="!editItem">
+              <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-warehouse</v-icon> Ombor</div>
+              <v-row dense>
+                <v-col cols="12" sm="4"><v-text-field label="Ombor miqdori" v-model.number="form.stock_qty" type="number" /></v-col>
+                <v-col cols="12" sm="4"><v-text-field label="Past chegara" v-model.number="form.low_stock_threshold" type="number" /></v-col>
+                <v-col cols="12" sm="4"><v-switch label="Omborda bor" v-model="form.in_stock" color="success" /></v-col>
+              </v-row>
+            </template>
+
             <!-- Switches -->
             <div class="d-flex ga-4 mt-1">
               <v-switch label="Faol" v-model="form.is_active" color="success" />
@@ -523,7 +533,7 @@ const pages = computed(() => Math.ceil(total.value / f.value.per_page))
 const emptyForm = () => ({
   name_uz:'', name_ru:'', category_id:null, unit:'kg', price:null, cost_price:null,
   sku:'', barcode:'', description_uz:'',
-  step:1, min_qty:1, max_qty:null, in_stock:true, stock_qty:0, low_stock_threshold:null,
+  step:1, min_qty:1, max_qty:null, in_stock:true, stock_qty:100, low_stock_threshold:null,
   sort_order:0, is_active:true, is_featured:false,
 })
 const form = ref(emptyForm())
@@ -584,16 +594,19 @@ async function save() {
       const { data } = await productsApi.create(form.value)
       const created = data.data
       if (created?.id) {
+        // Set stock
+        await productsApi.setStock(created.id, {
+          stock_qty: form.value.stock_qty,
+          in_stock: form.value.in_stock,
+          low_stock_threshold: form.value.low_stock_threshold,
+        }).catch(() => {})
         // Upload any pending images
         if (pendingImages.value.length) {
           await uploadPendingImages(created.id)
         }
-        editItem.value = created
-        productImages.value = []
-        assignedDiscounts.value = []
-        await reloadEdit()
       }
-      snack.success("Qo'shildi — rasmlar yuklandi")
+      dialog.value = false
+      snack.success("Mahsulot qo'shildi")
     }
     load()
   } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
