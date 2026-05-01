@@ -4,6 +4,8 @@ services:
       context: .
       args:
         VITE_API_URL: ${VITE_API_URL:-https://api.bazarmarket.org/admin-api}
+        VITE_FILE_SERVICE_URL: ${VITE_FILE_SERVICE_URL:-https://files.bazarmarket.org}
+        VITE_FILE_API_TOKEN: ${VITE_FILE_API_TOKEN}
     container_name: bazar-admin
     ports:
       - "8181:80"
