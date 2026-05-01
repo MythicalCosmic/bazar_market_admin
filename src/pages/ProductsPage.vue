@@ -240,8 +240,23 @@
             <!-- Section: Pricing -->
             <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-currency-usd</v-icon> Narxlar</div>
             <v-row dense>
-              <v-col cols="12" sm="6"><v-text-field label="Narxi (UZS) *" v-model.number="form.price" type="number" :rules="[r => r > 0 || 'Majburiy']" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field label="Tannarx" v-model.number="form.cost_price" type="number" /></v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  label="Narxi (UZS) *"
+                  :model-value="formatPrice(form.price)"
+                  @update:model-value="v => form.price = parsePrice(v)"
+                  :rules="[() => form.price > 0 || 'Majburiy']"
+                  inputmode="numeric"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  label="Tannarx"
+                  :model-value="formatPrice(form.cost_price)"
+                  @update:model-value="v => form.cost_price = parsePrice(v)"
+                  inputmode="numeric"
+                />
+              </v-col>
             </v-row>
 
             <!-- Section: Identifiers -->
@@ -465,6 +480,14 @@ import BzImageUpload from '@/components/common/BzImageUpload.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+function formatPrice(val) {
+  if (!val && val !== 0) return ''
+  return String(Math.round(Number(val))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+function parsePrice(str) {
+  return Number(String(str).replace(/\s/g, '').replace(/[^\d]/g, '')) || 0
+}
 
 const pStats = ref({ total: 0, active: 0, inStock: 0, lowStock: 0, totalValue: 0, discounted: 0 })
 const pStatsLoading = ref(false)

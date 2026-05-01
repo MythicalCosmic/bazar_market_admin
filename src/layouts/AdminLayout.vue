@@ -91,7 +91,7 @@
     </v-btn>
 
     <!-- ── Main ────────────────────────────────────────────── -->
-    <v-main style="min-height:100vh;background:var(--bz-surface-2)">
+    <v-main style="height:100vh;overflow-y:auto;background:var(--bz-surface-2)">
       <!-- Topbar -->
       <div
         class="d-flex align-center px-6"
