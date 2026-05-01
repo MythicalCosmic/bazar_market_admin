@@ -7,6 +7,28 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stat cards -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Jami" :value="pStats.total" icon="mdi-cube-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="pStatsLoading" />
+      </v-col>
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Faol" :value="pStats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="pStatsLoading" />
+      </v-col>
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Omborda" :value="pStats.inStock" icon="mdi-warehouse" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="pStatsLoading" />
+      </v-col>
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Kam qolgan" :value="pStats.lowStock" icon="mdi-alert-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="pStatsLoading" />
+      </v-col>
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Ombor qiymati" :value="pStats.totalValue" suffix="UZS" icon="mdi-cash-multiple" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="pStatsLoading" :format="v => fmt.compact(v)" />
+      </v-col>
+      <v-col cols="6" sm="4" lg="2">
+        <BzStatCard title="Chegirmada" :value="pStats.discounted" icon="mdi-sale" color="#EC4899" bg-color="rgba(236,72,153,0.10)" :loading="pStatsLoading" />
+      </v-col>
+    </v-row>
+
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Mahsulot nomi…" @search="onSearch">
       <v-select v-model="f.category_id" :items="categories" item-title="name" item-value="id" placeholder="Kategoriya" clearable hide-details density="comfortable" style="max-width:220px" @update:model-value="load" />
       <v-select v-model="f.is_active" :items="[{t:'Faol',v:'true'},{t:'Nofaol',v:'false'}]" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:140px" @update:model-value="load" />
@@ -249,35 +271,12 @@
             <!-- Image upload zone (CREATE mode only — inline) -->
             <template v-if="!editItem">
               <div class="bz-section-label mt-2"><v-icon size="14" class="mr-1">mdi-image-multiple-outline</v-icon> Rasmlar</div>
-              <div
-                class="bz-dropzone"
-                :class="{ 'bz-dropzone-active': dropActive }"
-                @dragover.prevent="dropActive = true"
-                @dragleave="dropActive = false"
-                @drop.prevent="onDropFiles"
-                @click="$refs.createFileInput?.click()"
-              >
-                <input
-                  ref="createFileInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  @change="onPickFiles"
-                />
-                <v-icon size="36" color="primary" style="opacity:0.5">mdi-cloud-upload-outline</v-icon>
-                <div style="font-weight:700;font-size:13.5px;margin-top:8px">Rasmlarni shu yerga tashlang</div>
-                <div style="font-size:12px;color:var(--bz-text-3);margin-top:2px">yoki bosib tanlang</div>
-              </div>
-              <v-progress-linear v-if="imgUpload.uploading.value" :model-value="imgUpload.progress.value" color="primary" rounded class="mt-2" />
+              <BzImageUpload @uploaded="onCreateImageUploaded" />
               <div v-if="pendingImages.length" class="d-flex flex-wrap ga-3 mt-3">
                 <div v-for="(img, i) in pendingImages" :key="i" class="bz-img-card">
                   <v-img :src="img.preview" width="110" height="110" rounded="lg" cover />
                   <div class="d-flex align-center justify-center pt-1">
-                    <v-chip v-if="img.uploaded" size="x-small" color="success" variant="tonal">
-                      <v-icon start size="11">mdi-check</v-icon> Tayyor
-                    </v-chip>
-                    <v-btn v-else icon variant="text" size="x-small" color="error" @click="pendingImages.splice(i, 1)">
+                    <v-btn icon variant="text" size="x-small" color="error" @click="pendingImages.splice(i, 1)">
                       <v-icon size="16">mdi-close</v-icon>
                     </v-btn>
                   </div>
@@ -288,26 +287,7 @@
 
           <!-- Images (EDIT mode — tab) -->
           <div v-if="editItem && formTab === 'images'">
-            <div
-              class="bz-dropzone mb-4"
-              :class="{ 'bz-dropzone-active': dropActive }"
-              @dragover.prevent="dropActive = true"
-              @dragleave="dropActive = false"
-              @drop.prevent="onDropEdit"
-              @click="$refs.editFileInput?.click()"
-            >
-              <input
-                ref="editFileInput"
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                @change="onPickEdit"
-              />
-              <v-icon size="36" color="primary" style="opacity:0.5">mdi-cloud-upload-outline</v-icon>
-              <div style="font-weight:700;font-size:13.5px;margin-top:8px">Rasmlarni shu yerga tashlang yoki bosib tanlang</div>
-            </div>
-            <v-progress-linear v-if="imgUpload.uploading.value" :model-value="imgUpload.progress.value" color="primary" rounded class="mb-4" />
+            <BzImageUpload class="mb-4" @uploaded="onEditImageUploaded" />
             <BzEmptyState v-if="!productImages.length" icon="mdi-image-off-outline" title="Rasmlar yo'q" subtitle="Yuqoridagi maydondan rasm qo'shing" />
             <div v-else class="d-flex flex-wrap ga-3">
               <div
@@ -471,19 +451,23 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { productsApi, categoriesApi, discountsApi } from '@/api'
+import { productsApi, categoriesApi, discountsApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
-import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
+import BzStatCard    from '@/components/common/BzStatCard.vue'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
 import BzPageLoader  from '@/components/common/BzPageLoader.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import BzImg         from '@/components/common/BzImg.vue'
+import BzImageUpload from '@/components/common/BzImageUpload.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+const pStats = ref({ total: 0, active: 0, inStock: 0, lowStock: 0, totalValue: 0, discounted: 0 })
+const pStatsLoading = ref(false)
 
 const products  = ref([])
 const categories= ref([])
@@ -501,9 +485,6 @@ const formTab   = ref('info')
 
 const productImages = ref([])
 const pendingImages = ref([])
-const dropActive    = ref(false)
-const imageLoading  = ref(false)
-const imgUpload     = useFileUpload()
 const dragImg       = ref(null)
 const stockLoading  = ref(false)
 const assignedDiscounts = ref([])
@@ -515,8 +496,6 @@ const boolOptions = [
   { t: "Yo'q", v: 'false' },
 ]
 const pages = computed(() => Math.ceil(total.value / f.value.per_page))
-const createFileInput = ref()
-const editFileInput  = ref()
 
 const emptyForm = () => ({
   name_uz:'', name_ru:'', category_id:null, unit:'kg', price:null, cost_price:null,
@@ -619,44 +598,25 @@ async function load() {
   } catch {} finally { loading.value = false }
 }
 
-// Images — create mode: collect files locally
-function addPendingFiles(files) {
-  for (const f of files) {
-    if (!f.type.startsWith('image/')) continue
-    pendingImages.value.push({ file: f, preview: URL.createObjectURL(f), uploaded: false })
-  }
+// Images — BzImageUpload @uploaded handlers
+function onCreateImageUploaded(url) {
+  pendingImages.value.push({ url, preview: url })
 }
-function onPickFiles(e) { addPendingFiles(e.target.files); e.target.value = '' }
-function onDropFiles(e) { dropActive.value = false; addPendingFiles(e.dataTransfer.files) }
 
-// Images — edit mode: upload immediately
-async function uploadEditFiles(files) {
-  for (const f of files) {
-    if (!f.type.startsWith('image/')) continue
-    imageLoading.value = true
-    try {
-      const url = await imgUpload.upload(f)
-      if (!url) continue
-      await productsApi.addImages(editItem.value.id, [{ image: url, is_primary: !productImages.value.length }])
-      await reloadEdit()
-      snack.success('Rasm qo\'shildi')
-    } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
-    finally { imageLoading.value = false }
-  }
+async function onEditImageUploaded(url) {
+  try {
+    await productsApi.addImages(editItem.value.id, [{ image: url, is_primary: !productImages.value.length }])
+    await reloadEdit()
+    snack.success('Rasm qo\'shildi')
+  } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
 }
-function onPickEdit(e) { uploadEditFiles(e.target.files); e.target.value = '' }
-function onDropEdit(e) { dropActive.value = false; uploadEditFiles(e.dataTransfer.files) }
 
-// Upload pending images after product creation
+// Upload pending image URLs after product creation
 async function uploadPendingImages(productId) {
   for (let i = 0; i < pendingImages.value.length; i++) {
     const img = pendingImages.value[i]
-    if (img.uploaded) continue
     try {
-      const url = await imgUpload.upload(img.file)
-      if (!url) continue
-      await productsApi.addImages(productId, [{ image: url, is_primary: i === 0 }])
-      img.uploaded = true
+      await productsApi.addImages(productId, [{ image: img.url, is_primary: i === 0 }])
     } catch {}
   }
 }
@@ -770,8 +730,40 @@ async function saveReorder() {
   finally { reorderSaving.value = false }
 }
 
+async function loadProductStats() {
+  pStatsLoading.value = true
+  try {
+    // Fetch API stats + full product list in parallel
+    const [sRes, pRes] = await Promise.allSettled([
+      statsApi.products(),
+      productsApi.list({ per_page: 500 }),
+    ])
+    const api = sRes.status === 'fulfilled' ? (sRes.value.data.data || {}) : {}
+    const all = pRes.status === 'fulfilled' ? (pRes.value.data.data?.items || []) : []
+
+    // Compute from product list what the API doesn't provide
+    let inStock = 0, lowStock = 0, totalValue = 0, discounted = 0
+    all.forEach(p => {
+      if (p.in_stock) inStock++
+      if (p.is_low_stock) lowStock++
+      totalValue += Number(p.price || 0) * Number(p.stock_qty || 0)
+      if (p.discount && p.discounted_price && p.discounted_price !== p.price) discounted++
+    })
+
+    pStats.value = {
+      total:      api.total || all.length,
+      active:     api.active ?? all.filter(p => p.is_active).length,
+      inStock:    api.in_stock ?? inStock,
+      lowStock:   api.low_stock ?? lowStock,
+      totalValue: Number(api.total_value || api.total_price || 0) || totalValue,
+      discounted: api.with_discount ?? discounted,
+    }
+  } catch {} finally { pStatsLoading.value = false }
+}
+
 onMounted(async () => {
   load()
+  loadProductStats()
   try {
     const { data } = await categoriesApi.list({ per_page: 200 })
     categories.value = (data.data?.items || []).map(c => ({ id: c.id, name: c.name_uz || c.name }))

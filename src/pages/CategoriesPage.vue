@@ -163,20 +163,15 @@
             <v-text-field label="Nomi (RU)"   v-model="form.name_ru" class="mb-3" />
 
             <!-- Image upload -->
-            <div class="bz-cat-upload mb-3">
+            <div class="mb-3">
               <div v-if="form.image" style="position:relative">
                 <BzImg :src="form.image" cover height="140" rounded="lg" />
                 <v-btn icon size="x-small" color="error" variant="flat" style="position:absolute;top:6px;right:6px" @click="form.image = ''">
                   <v-icon size="14">mdi-close</v-icon>
                 </v-btn>
               </div>
-              <div v-else class="bz-cat-dropzone" @click="$refs.catFileInput?.click()">
-                <input ref="catFileInput" type="file" accept="image/*" hidden @change="onPickCatFile" />
-                <v-icon size="28" color="primary" style="opacity:0.5">mdi-cloud-upload-outline</v-icon>
-                <div style="font-weight:600;font-size:12.5px;margin-top:6px">Rasm yuklash</div>
-              </div>
+              <BzImageUpload v-else @uploaded="url => form.image = url" />
             </div>
-            <v-progress-linear v-if="fileUpload.uploading.value" :model-value="fileUpload.progress.value" color="primary" rounded class="mb-3" />
 
             <v-row dense>
               <v-col cols="6"><v-text-field label="Sort tartibi" v-model.number="form.sort_order" type="number" /></v-col>
@@ -276,13 +271,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { categoriesApi, statsApi } from '@/api'
-import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
 import BzStatCard    from '@/components/common/BzStatCard.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import BzImg           from '@/components/common/BzImg.vue'
+import BzImageUpload   from '@/components/common/BzImageUpload.vue'
 
 const snack = useSnackStore()
 
@@ -301,19 +296,10 @@ const delTarget = ref(null)
 const formRef = ref()
 const dragId  = ref(null)
 const catTab  = ref('info')
-const catFileInput = ref()
-const fileUpload   = useFileUpload()
 
 const editChildren = ref([])
 const newChildName = ref('')
 const addingChild  = ref(false)
-
-function onPickCatFile(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  fileUpload.upload(file).then(url => { if (url) form.value.image = url })
-  e.target.value = ''
-}
 
 const emptyForm = () => ({ name_uz:'', name_ru:'', image:'', sort_order:0, parent_id:null, is_active:true })
 const form = ref(emptyForm())

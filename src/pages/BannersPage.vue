@@ -70,16 +70,7 @@
         <v-divider />
         <v-card-text class="pa-5">
           <v-form ref="formRef">
-            <v-file-input
-              v-model="bannerFile"
-              label="Rasm tanlang"
-              accept="image/*"
-              :rules="[r => !!form.image || !!r || 'Majburiy']"
-              prepend-icon="mdi-camera"
-              class="mb-3"
-              @update:model-value="onBannerFile"
-            />
-            <v-progress-linear v-if="fileUpload.uploading.value" :model-value="fileUpload.progress.value" color="primary" rounded class="mb-1" />
+            <BzImageUpload class="mb-3" @uploaded="url => form.image = url" />
             <BzImg v-if="form.image" :src="form.image" cover height="180" rounded="lg" class="mb-3" />
             <v-text-field label="Sarlavha" v-model="form.title" class="mb-3" />
             <v-row dense>
@@ -109,7 +100,6 @@
 import { ref, onMounted } from 'vue'
 import { bannersApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
-import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
 import BzStatCard   from '@/components/common/BzStatCard.vue'
@@ -117,6 +107,7 @@ import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import BzImg           from '@/components/common/BzImg.vue'
+import BzImageUpload   from '@/components/common/BzImageUpload.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
@@ -133,15 +124,6 @@ const editItem= ref(null)
 const confirmDialog = ref(false)
 const delTarget = ref(null)
 const formRef = ref()
-const bannerFile  = ref(null)
-const fileUpload  = useFileUpload()
-
-async function onBannerFile(files) {
-  const file = Array.isArray(files) ? files[0] : files
-  if (!file) return
-  const url = await fileUpload.upload(file)
-  if (url) form.value.image = url
-}
 
 const linkTypes = [
   { t: "Yo'q",       v: 'none' },
