@@ -2,6 +2,7 @@
   <div>
     <BzPageHeader title="Mahsulotlar" :subtitle="total ? `${total} ta jami` : ''">
       <template #actions>
+        <v-btn variant="tonal" color="primary" rounded="lg" prepend-icon="mdi-swap-vertical" @click="openReorder" :disabled="!products.length">Tartib</v-btn>
         <v-btn color="primary" rounded="lg" prepend-icon="mdi-plus" @click="openCreate">Mahsulot qo'shish</v-btn>
       </template>
     </BzPageHeader>
@@ -378,6 +379,92 @@
       </v-card>
     </v-dialog>
 
+    <!-- Reorder Dialog -->
+    <v-dialog v-model="reorderDialog" max-width="520" persistent scrollable>
+      <v-card rounded="xl">
+        <div class="bz-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="bz-dialog-icon" style="background:rgba(59,130,246,0.12)">
+              <v-icon color="primary" size="22">mdi-swap-vertical</v-icon>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:17px">Tartibni o'zgartirish</div>
+              <div style="font-size:12px;color:var(--bz-text-3);margin-top:1px">Mahsulotlarni suring yoki tugmalar bilan o'zgartiring</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" @click="reorderDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
+        <v-divider />
+
+        <!-- Category filter -->
+        <div class="px-5 pt-4 pb-2">
+          <v-select
+            v-model="reorderCategoryId"
+            :items="[{ id: null, name: 'Barcha kategoriyalar' }, ...categories]"
+            item-title="name"
+            item-value="id"
+            hide-details
+            density="comfortable"
+            prepend-inner-icon="mdi-filter-outline"
+            @update:model-value="loadReorderList"
+          />
+        </div>
+
+        <v-card-text class="pa-4" style="max-height:55vh">
+          <BzPageLoader v-if="reorderLoading" :size="36" />
+          <BzEmptyState v-else-if="!reorderItems.length" icon="mdi-cube-off-outline" title="Mahsulotlar yo'q" />
+          <div v-else class="d-flex flex-column ga-1">
+            <div
+              v-for="(item, idx) in reorderItems"
+              :key="item.id"
+              class="bz-reorder-row"
+              draggable="true"
+              @dragstart="reorderDragIdx = idx"
+              @dragover.prevent
+              @dragenter.prevent="reorderDragOver(idx)"
+              @drop="reorderDrop"
+            >
+              <!-- Position number -->
+              <div class="bz-reorder-num">{{ idx + 1 }}</div>
+
+              <!-- Product info -->
+              <BzImg
+                :src="item.primary_image || item.image || item.images?.[0]?.image || 'https://placehold.co/40x40/f1f5f9/94a3b8?text=?'"
+                width="40" height="40" rounded="lg" cover
+              />
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.name_uz }}</div>
+                <div style="font-size:11px;color:var(--bz-text-3)">{{ fmt.price(item.price) }}</div>
+              </div>
+
+              <!-- Move buttons -->
+              <div class="d-flex flex-column">
+                <v-btn icon variant="text" size="x-small" :disabled="idx === 0" @click="moveItem(idx, idx - 1)">
+                  <v-icon size="16">mdi-chevron-up</v-icon>
+                </v-btn>
+                <v-btn icon variant="text" size="x-small" :disabled="idx === reorderItems.length - 1" @click="moveItem(idx, idx + 1)">
+                  <v-icon size="16">mdi-chevron-down</v-icon>
+                </v-btn>
+              </div>
+
+              <!-- Drag handle -->
+              <v-icon size="18" color="grey" class="bz-drag-handle">mdi-drag</v-icon>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <div style="font-size:12px;color:var(--bz-text-3)">{{ reorderItems.length }} ta mahsulot</div>
+          <v-spacer />
+          <v-btn variant="text" @click="reorderDialog = false">Bekor</v-btn>
+          <v-btn color="primary" rounded="lg" :loading="reorderSaving" @click="saveReorder">
+            <v-icon start>mdi-content-save-outline</v-icon> Tartibni saqlash
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <BzConfirmDialog v-model="confirmDialog" title="Mahsulotni o'chirish" :text="`'${delTarget?.name_uz}' o'chirilsinmi?`" :loading="deleting" @confirm="del" />
   </div>
 </template>
@@ -389,6 +476,7 @@ import { useFormat } from '@/composables/useFormat'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
+import BzPageLoader  from '@/components/common/BzPageLoader.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
@@ -629,6 +717,59 @@ watch(formTab, async tab => {
   }
 })
 
+// Reorder
+const reorderDialog    = ref(false)
+const reorderItems     = ref([])
+const reorderLoading   = ref(false)
+const reorderSaving    = ref(false)
+const reorderCategoryId = ref(null)
+const reorderDragIdx   = ref(null)
+
+function openReorder() {
+  reorderCategoryId.value = null
+  reorderDialog.value = true
+  loadReorderList()
+}
+
+async function loadReorderList() {
+  reorderLoading.value = true
+  try {
+    const params = { per_page: 200, order_by: 'sort_order' }
+    if (reorderCategoryId.value) params.category_id = reorderCategoryId.value
+    const { data } = await productsApi.list(params)
+    reorderItems.value = data.data?.items || data.data || []
+  } catch {} finally { reorderLoading.value = false }
+}
+
+function moveItem(from, to) {
+  const list = [...reorderItems.value]
+  const [item] = list.splice(from, 1)
+  list.splice(to, 0, item)
+  reorderItems.value = list
+}
+
+function reorderDragOver(idx) {
+  if (reorderDragIdx.value === null || reorderDragIdx.value === idx) return
+  moveItem(reorderDragIdx.value, idx)
+  reorderDragIdx.value = idx
+}
+
+function reorderDrop() {
+  reorderDragIdx.value = null
+}
+
+async function saveReorder() {
+  reorderSaving.value = true
+  try {
+    const ids = reorderItems.value.map(p => p.id)
+    await productsApi.reorder(ids)
+    snack.success('Tartib saqlandi')
+    reorderDialog.value = false
+    load()
+  } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
+  finally { reorderSaving.value = false }
+}
+
 onMounted(async () => {
   load()
   try {
@@ -757,4 +898,50 @@ onMounted(async () => {
 }
 .bz-img-card:hover { transform: translateY(-2px); box-shadow: var(--bz-shadow-md); }
 .bz-img-card:active { cursor: grabbing; }
+
+/* Reorder rows */
+.bz-reorder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--bz-border);
+  background: var(--bz-surface-2);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  user-select: none;
+}
+.bz-reorder-row:hover {
+  background: var(--bz-surface-3);
+  box-shadow: var(--bz-shadow-sm);
+}
+.bz-reorder-row:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: var(--bz-shadow-md);
+  z-index: 10;
+  position: relative;
+}
+.bz-reorder-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--bz-primary);
+  background: var(--bz-primary-soft);
+  flex-shrink: 0;
+}
+.bz-drag-handle {
+  cursor: grab;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+.bz-reorder-row:hover .bz-drag-handle {
+  opacity: 0.8;
+}
 </style>
