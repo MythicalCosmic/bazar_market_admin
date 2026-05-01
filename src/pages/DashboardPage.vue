@@ -14,34 +14,35 @@
     <v-row class="mb-2" dense>
       <v-col cols="12" sm="6" lg="3">
         <BzStatCard
-          title="Bugungi buyurtmalar"
-          :value="kpis.ordersToday"
+          title="Buyurtmalar"
+          :value="kpis.totalOrders"
           :delta="kpis.ordersDelta"
           icon="mdi-package-variant-closed"
           color="#16A34A" bg-color="rgba(22,163,74,0.10)"
           :series="ordersSeries" :loading="loading"
+          :sub="kpis.ordersToday ? `Bugun: ${kpis.ordersToday} ta` : `Oxirgi ${period} kun`"
         />
       </v-col>
       <v-col cols="12" sm="6" lg="3">
         <BzStatCard
-          title="Bugungi tushum"
-          :value="kpis.revenueToday" suffix="UZS"
+          title="Tushum"
+          :value="kpis.periodRevenue" suffix="UZS"
           :delta="kpis.revenueDelta"
           icon="mdi-cash-multiple"
           color="#3B82F6" bg-color="rgba(59,130,246,0.10)"
           :series="revenueSeries" :loading="loading"
           :format="v => fmt.compact(v)"
+          :sub="kpis.revenueToday ? `Bugun: ${fmt.compact(kpis.revenueToday)}` : `Oxirgi ${period} kun`"
         />
       </v-col>
       <v-col cols="12" sm="6" lg="3">
         <BzStatCard
           title="Yangi mijozlar"
           :value="kpis.newCustomers"
-          :delta="kpis.customersDelta"
           icon="mdi-account-plus-outline"
           color="#F59E0B" bg-color="rgba(245,158,11,0.10)"
-          :series="customersSeries" :loading="loading"
-          sub="Bu davrda"
+          :loading="loading"
+          sub="Oxirgi 7 kunda"
         />
       </v-col>
       <v-col cols="12" sm="6" lg="3">
@@ -220,7 +221,8 @@ const favoritesLoading = ref(true)
 const kpis = ref({
   ordersToday: 0, ordersDelta: null,
   revenueToday: 0, revenueDelta: null,
-  newCustomers: 0, customersDelta: null,
+  periodRevenue: 0,
+  newCustomers: 0,
   avgOrder: 0,
   totalOrders: 0,
 })
@@ -270,24 +272,53 @@ function safeArray(v) { return Array.isArray(v) ? v : [] }
 async function loadStats() {
   loading.value = true
   const range = dateRange(period.value)
-  const [oRes, pRes, cRes] = await Promise.allSettled([
+  const [ovRes, oRes, cRes] = await Promise.allSettled([
+    statsApi.overview(range),
     statsApi.orders(range),
-    statsApi.payments(range),
     statsApi.customers(range),
   ])
 
-  // Orders stats
+  // Overview → KPI cards
+  if (ovRes.status === 'fulfilled') {
+    const d = ovRes.value.data.data || {}
+    kpis.value.ordersToday  = Number(d.orders_today || 0)
+    kpis.value.revenueToday = Number(d.revenue_today || 0)
+  }
+
+  // Orders stats → chart, donut, avg
   if (oRes.status === 'fulfilled') {
     const d = oRes.value.data.data || {}
-    kpis.value.totalOrders = Number(d.total || 0)
-    const series = safeArray(d.timeseries || d.series || d.daily || [])
-    ordersSeries.value = series.map(x => Number(x.count ?? x.value ?? x.orders ?? 0))
-    kpis.value.ordersToday = ordersSeries.value.at(-1) || Number(d.today || 0)
-    if (ordersSeries.value.length >= 2) {
-      const last = ordersSeries.value.at(-1)
-      const prev = ordersSeries.value.at(-2)
+    kpis.value.totalOrders   = Number(d.total || 0)
+    kpis.value.avgOrder      = Number(d.revenue?.avg || 0)
+    kpis.value.periodRevenue = Number(d.revenue?.total || 0)
+    periodRevenue.value      = kpis.value.periodRevenue
+
+    // orders_by_day → revenue line chart
+    const byDay = safeArray(d.orders_by_day)
+    const cats = []
+    const vals = []
+    byDay.forEach(p => {
+      const dt = new Date(p.date)
+      cats.push(!isNaN(dt.getTime())
+        ? dt.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })
+        : (p.date || '').slice(5))
+      vals.push(Number(p.revenue || 0))
+    })
+    revenueChart.value  = { categories: cats, values: vals }
+    revenueSeries.value = vals.slice(-12)
+    ordersSeries.value  = byDay.map(x => Number(x.count || 0))
+
+    // Delta: compare last two days
+    if (byDay.length >= 2) {
+      const last = Number(byDay.at(-1)?.count || 0)
+      const prev = Number(byDay.at(-2)?.count || 0)
       if (prev > 0) kpis.value.ordersDelta = ((last - prev) / prev) * 100
     }
+    if (vals.length >= 2 && vals.at(-2) > 0) {
+      kpis.value.revenueDelta = ((vals.at(-1) - vals.at(-2)) / vals.at(-2)) * 100
+    }
+
+    // by_status → donut chart
     const byStatus = d.by_status || {}
     const labels = []
     const values = []
@@ -298,35 +329,10 @@ async function loadStats() {
     orderStatusChart.value = { labels, values }
   }
 
-  // Payment stats
-  if (pRes.status === 'fulfilled') {
-    const d = pRes.value.data.data || {}
-    kpis.value.avgOrder    = Number(d.avg_payment || d.avg || 0)
-    periodRevenue.value    = Number(d.revenue || d.completed_amount || 0)
-    const ts = safeArray(d.timeseries || d.daily || d.series || [])
-    const cats = []
-    const vals = []
-    ts.forEach(p => {
-      cats.push((p.date || p.day || '').slice(5)) // MM-DD
-      vals.push(Number(p.amount ?? p.revenue ?? p.value ?? 0))
-    })
-    revenueChart.value = { categories: cats, values: vals }
-    revenueSeries.value = vals.slice(-12)
-    kpis.value.revenueToday = vals.at(-1) || 0
-    if (vals.length >= 2 && vals.at(-2) > 0) {
-      kpis.value.revenueDelta = ((vals.at(-1) - vals.at(-2)) / vals.at(-2)) * 100
-    }
-  }
-
   // Customer stats
   if (cRes.status === 'fulfilled') {
     const d = cRes.value.data.data || {}
-    kpis.value.newCustomers = Number(d.new || d.new_count || d.total || 0)
-    const ts = safeArray(d.timeseries || d.daily || [])
-    customersSeries.value = ts.map(x => Number(x.count ?? x.new ?? x.value ?? 0))
-    if (customersSeries.value.length >= 2 && customersSeries.value.at(-2) > 0) {
-      kpis.value.customersDelta = ((customersSeries.value.at(-1) - customersSeries.value.at(-2)) / customersSeries.value.at(-2)) * 100
-    }
+    kpis.value.newCustomers = Number(d.new_last_7d || d.new_last_30d || d.total_customers || 0)
   }
 
   loading.value = false

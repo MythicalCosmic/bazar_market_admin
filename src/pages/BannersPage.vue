@@ -15,7 +15,7 @@
       <v-col v-for="b in banners" :key="b.id" cols="12" sm="6" lg="4">
         <v-card rounded="xl" class="bz-card bz-card-hover" style="overflow:hidden;height:100%">
           <div style="position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bz-surface-3)">
-            <v-img :src="b.image" cover height="100%" />
+            <BzImg :src="b.image" cover height="100%" />
             <v-chip class="chip-sm" :color="b.is_active ? 'success' : 'error'" variant="flat" size="small" style="position:absolute;top:10px;left:10px">
               {{ b.is_active ? 'Faol' : 'Nofaol' }}
             </v-chip>
@@ -54,8 +54,17 @@
         <v-divider />
         <v-card-text class="pa-5">
           <v-form ref="formRef">
-            <v-text-field label="Rasm URL *" v-model="form.image" :rules="[r => !!r || 'Majburiy']" class="mb-3" />
-            <v-img v-if="form.image" :src="form.image" cover height="180" rounded="lg" class="mb-3" />
+            <v-file-input
+              v-model="bannerFile"
+              label="Rasm tanlang"
+              accept="image/*"
+              :rules="[r => !!form.image || !!r || 'Majburiy']"
+              prepend-icon="mdi-camera"
+              class="mb-3"
+              @update:model-value="onBannerFile"
+            />
+            <v-progress-linear v-if="fileUpload.uploading.value" :model-value="fileUpload.progress.value" color="primary" rounded class="mb-1" />
+            <BzImg v-if="form.image" :src="form.image" cover height="180" rounded="lg" class="mb-3" />
             <v-text-field label="Sarlavha" v-model="form.title" class="mb-3" />
             <v-row dense>
               <v-col cols="6"><v-select label="Havola turi" v-model="form.link_type" :items="linkTypes" item-title="t" item-value="v" /></v-col>
@@ -84,11 +93,13 @@
 import { ref, onMounted } from 'vue'
 import { bannersApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
+import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
+import BzImg           from '@/components/common/BzImg.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
@@ -102,6 +113,15 @@ const editItem= ref(null)
 const confirmDialog = ref(false)
 const delTarget = ref(null)
 const formRef = ref()
+const bannerFile  = ref(null)
+const fileUpload  = useFileUpload()
+
+async function onBannerFile(files) {
+  const file = Array.isArray(files) ? files[0] : files
+  if (!file) return
+  const url = await fileUpload.upload(file)
+  if (url) form.value.image = url
+}
 
 const linkTypes = [
   { t: "Yo'q",       v: 'none' },

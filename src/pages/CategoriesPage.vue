@@ -37,7 +37,7 @@
         <v-card rounded="xl" class="bz-cat-card bz-card" style="height:100%;display:flex;flex-direction:column;overflow:hidden">
           <!-- Image -->
           <div class="bz-cat-img-wrap" @click="openEdit(cat)">
-            <v-img
+            <BzImg
               :src="cat.image || 'https://placehold.co/400x220/f1f5f9/94a3b8?text=' + encodeURIComponent(cat.name_uz || 'Kategoriya')"
               height="160"
               cover
@@ -119,7 +119,16 @@
           <v-form ref="formRef">
             <v-text-field label="Nomi (UZ) *" v-model="form.name_uz" :rules="[r => !!r || 'Majburiy']" class="mb-3" />
             <v-text-field label="Nomi (RU)"   v-model="form.name_ru" class="mb-3" />
-            <v-text-field label="Rasm URL"    v-model="form.image" class="mb-3" />
+            <v-file-input
+              v-model="categoryFile"
+              label="Rasm tanlang"
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              class="mb-3"
+              @update:model-value="onCategoryFile"
+            />
+            <v-progress-linear v-if="fileUpload.uploading.value" :model-value="fileUpload.progress.value" color="primary" rounded class="mb-1" />
+            <BzImg v-if="form.image" :src="form.image" cover height="120" rounded="lg" class="mb-3" />
             <v-text-field label="Sort tartibi" v-model.number="form.sort_order" type="number" class="mb-3" />
             <div v-if="form.parent_id" class="mb-3 d-flex align-center ga-2" style="font-size:12px;color:var(--bz-text-3)">
               <v-icon size="14">mdi-source-branch</v-icon>
@@ -145,10 +154,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { categoriesApi } from '@/api'
+import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
+import BzImg           from '@/components/common/BzImg.vue'
 
 const snack = useSnackStore()
 
@@ -163,6 +174,15 @@ const confirmDialog = ref(false)
 const delTarget = ref(null)
 const formRef = ref()
 const dragId  = ref(null)
+const categoryFile = ref(null)
+const fileUpload   = useFileUpload()
+
+async function onCategoryFile(files) {
+  const file = Array.isArray(files) ? files[0] : files
+  if (!file) return
+  const url = await fileUpload.upload(file)
+  if (url) form.value.image = url
+}
 
 const emptyForm = () => ({ name_uz:'', name_ru:'', image:'', sort_order:0, parent_id:null, is_active:true })
 const form = ref(emptyForm())

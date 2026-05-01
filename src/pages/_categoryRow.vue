@@ -5,7 +5,7 @@
       <v-btn v-if="cat.children?.length" icon variant="text" size="x-small" @click="open = !open">
         <v-icon size="16">{{ open ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
       </v-btn>
-      <v-img :src="cat.image || 'https://placehold.co/40x40/f1f5f9/94a3b8?text=?'" width="40" height="40" rounded="lg" cover />
+      <BzImg :src="cat.image || 'https://placehold.co/40x40/f1f5f9/94a3b8?text=?'" width="40" height="40" rounded="lg" cover />
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:14px">{{ cat.name_uz || cat.name }}</div>
         <div style="font-size:11.5px;color:var(--bz-text-3)">
@@ -39,6 +39,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import BzImg from '@/components/common/BzImg.vue'
 
 defineOptions({ name: 'CategoryRow' })
 

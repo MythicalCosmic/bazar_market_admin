@@ -44,7 +44,7 @@
             <v-list class="pa-2">
               <v-list-item v-for="item in (order.items || [])" :key="item.id" rounded="lg" class="mb-1">
                 <template #prepend>
-                  <v-img
+                  <BzImg
                     :src="item.image || 'https://placehold.co/52x52/e2e8f0/94a3b8?text=?'"
                     width="52" height="52" rounded="lg" cover class="mr-3"
                   />
@@ -312,6 +312,7 @@ import BzPageLoader   from '@/components/common/BzPageLoader.vue'
 import BzEmptyState   from '@/components/common/BzEmptyState.vue'
 import BzStatusChip   from '@/components/common/BzStatusChip.vue'
 import BzSkeleton     from '@/components/common/BzSkeleton.vue'
+import BzImg          from '@/components/common/BzImg.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import ZoneMap        from '@/components/zones/ZoneMap.vue'
 

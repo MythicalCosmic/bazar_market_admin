@@ -40,7 +40,7 @@
         <v-card rounded="xl" class="bz-product-card bz-card" style="height:100%;display:flex;flex-direction:column">
           <!-- Image area -->
           <div class="bz-product-img-wrap" @click="openEdit(item)">
-            <v-img
+            <BzImg
               :src="item.primary_image || item.image || item.images?.[0]?.image || 'https://placehold.co/400x300/f1f5f9/94a3b8?text=Rasm+yo%27q'"
               height="200"
               cover
@@ -175,52 +175,139 @@
     </v-card>
 
     <!-- Create/Edit Dialog -->
-    <v-dialog v-model="dialog" max-width="780" persistent scrollable>
-      <v-card rounded="xl">
-        <div class="pa-5 pb-3 d-flex align-center justify-space-between">
-          <span style="font-weight:800;font-size:17px">{{ editItem ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot' }}</span>
-          <v-btn icon variant="text" @click="dialog = false"><v-icon>mdi-close</v-icon></v-btn>
+    <v-dialog v-model="dialog" max-width="820" persistent scrollable>
+      <v-card rounded="xl" class="bz-product-dialog">
+        <!-- Header -->
+        <div class="bz-dialog-header">
+          <div class="d-flex align-center ga-3">
+            <div class="bz-dialog-icon" :style="{ background: editItem ? 'var(--bz-primary-soft)' : 'rgba(34,197,94,0.12)' }">
+              <v-icon :color="editItem ? 'primary' : 'success'" size="22">{{ editItem ? 'mdi-pencil-outline' : 'mdi-plus' }}</v-icon>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:17px">{{ editItem ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot' }}</div>
+              <div v-if="editItem" style="font-size:12px;color:var(--bz-text-3);margin-top:1px">ID: {{ editItem.id }} · {{ editItem.name_uz }}</div>
+            </div>
+          </div>
+          <v-btn icon variant="text" size="small" @click="dialog = false"><v-icon>mdi-close</v-icon></v-btn>
         </div>
+
+        <!-- Tabs (edit mode only) -->
+        <template v-if="editItem">
+          <v-tabs v-model="formTab" color="primary" density="comfortable" class="bz-dialog-tabs">
+            <v-tab value="info"><v-icon start size="16">mdi-information-outline</v-icon> Ma'lumot</v-tab>
+            <v-tab value="images"><v-icon start size="16">mdi-image-multiple-outline</v-icon> Rasmlar <v-chip v-if="productImages.length" size="x-small" color="primary" variant="tonal" class="ml-1">{{ productImages.length }}</v-chip></v-tab>
+            <v-tab value="stock"><v-icon start size="16">mdi-warehouse</v-icon> Ombor</v-tab>
+            <v-tab value="discounts"><v-icon start size="16">mdi-sale</v-icon> Chegirmalar</v-tab>
+          </v-tabs>
+        </template>
         <v-divider />
 
-        <v-tabs v-model="formTab" color="primary" density="comfortable" :disabled="!editItem && tabsRequireEdit" :hide-slider="false">
-          <v-tab value="info"><v-icon start size="16">mdi-information-outline</v-icon> Ma'lumot</v-tab>
-          <v-tab value="images" :disabled="!editItem"><v-icon start size="16">mdi-image-multiple-outline</v-icon> Rasmlar</v-tab>
-          <v-tab value="stock" :disabled="!editItem"><v-icon start size="16">mdi-warehouse</v-icon> Ombor</v-tab>
-          <v-tab value="discounts" :disabled="!editItem"><v-icon start size="16">mdi-sale</v-icon> Chegirmalar</v-tab>
-        </v-tabs>
-        <v-divider />
-
-        <v-card-text class="pa-5" style="max-height:60vh">
-          <!-- Info -->
-          <v-form v-if="formTab === 'info'" ref="formRef">
+        <v-card-text class="pa-5" style="max-height:65vh">
+          <!-- Info form (always visible in create, tab-controlled in edit) -->
+          <v-form v-if="formTab === 'info' || !editItem" ref="formRef">
+            <!-- Section: Basic -->
+            <div class="bz-section-label"><v-icon size="14" class="mr-1">mdi-tag-outline</v-icon> Asosiy ma'lumotlar</div>
             <v-row dense>
               <v-col cols="12" sm="6"><v-text-field label="Nomi (UZ) *" v-model="form.name_uz" :rules="[r => !!r || 'Majburiy']" /></v-col>
               <v-col cols="12" sm="6"><v-text-field label="Nomi (RU)" v-model="form.name_ru" /></v-col>
               <v-col cols="12" sm="6"><v-select label="Kategoriya *" v-model="form.category_id" :items="categories" item-title="name" item-value="id" :rules="[r => !!r || 'Majburiy']" /></v-col>
               <v-col cols="12" sm="6"><v-select label="Birlik *" v-model="form.unit" :items="['kg','piece','liter','pack','bundle']" :rules="[r => !!r || 'Majburiy']" /></v-col>
+            </v-row>
+
+            <!-- Section: Pricing -->
+            <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-currency-usd</v-icon> Narxlar</div>
+            <v-row dense>
               <v-col cols="12" sm="6"><v-text-field label="Narxi (UZS) *" v-model.number="form.price" type="number" :rules="[r => r > 0 || 'Majburiy']" /></v-col>
               <v-col cols="12" sm="6"><v-text-field label="Tannarx" v-model.number="form.cost_price" type="number" /></v-col>
+            </v-row>
+
+            <!-- Section: Identifiers -->
+            <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-barcode</v-icon> Identifikatorlar</div>
+            <v-row dense>
               <v-col cols="12" sm="6"><v-text-field label="SKU" v-model="form.sku" style="font-family:monospace" /></v-col>
               <v-col cols="12" sm="6"><v-text-field label="Shtrix-kod" v-model="form.barcode" style="font-family:monospace" /></v-col>
+            </v-row>
+
+            <!-- Section: Quantities -->
+            <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-scale-balance</v-icon> Miqdor sozlamalari</div>
+            <v-row dense>
               <v-col cols="12" sm="4"><v-text-field label="Min miqdor" v-model.number="form.min_qty" type="number" /></v-col>
               <v-col cols="12" sm="4"><v-text-field label="Max miqdor" v-model.number="form.max_qty" type="number" /></v-col>
               <v-col cols="12" sm="4"><v-text-field label="Qadam" v-model.number="form.step" type="number" step="0.1" /></v-col>
-              <v-col cols="12"><v-textarea label="Tavsif (UZ)" v-model="form.description_uz" rows="3" /></v-col>
-              <v-col cols="12" class="d-flex ga-4">
-                <v-switch label="Faol" v-model="form.is_active" />
-                <v-switch label="Featured" v-model="form.is_featured" color="warning" />
-              </v-col>
             </v-row>
+
+            <!-- Description -->
+            <v-textarea label="Tavsif (UZ)" v-model="form.description_uz" rows="3" class="mt-2" />
+
+            <!-- Switches -->
+            <div class="d-flex ga-4 mt-1">
+              <v-switch label="Faol" v-model="form.is_active" color="success" />
+              <v-switch label="Featured" v-model="form.is_featured" color="warning" />
+            </div>
+
+            <!-- Image upload zone (CREATE mode only — inline) -->
+            <template v-if="!editItem">
+              <div class="bz-section-label mt-2"><v-icon size="14" class="mr-1">mdi-image-multiple-outline</v-icon> Rasmlar</div>
+              <div
+                class="bz-dropzone"
+                :class="{ 'bz-dropzone-active': dropActive }"
+                @dragover.prevent="dropActive = true"
+                @dragleave="dropActive = false"
+                @drop.prevent="onDropFiles"
+                @click="$refs.createFileInput?.click()"
+              >
+                <input
+                  ref="createFileInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  @change="onPickFiles"
+                />
+                <v-icon size="36" color="primary" style="opacity:0.5">mdi-cloud-upload-outline</v-icon>
+                <div style="font-weight:700;font-size:13.5px;margin-top:8px">Rasmlarni shu yerga tashlang</div>
+                <div style="font-size:12px;color:var(--bz-text-3);margin-top:2px">yoki bosib tanlang</div>
+              </div>
+              <v-progress-linear v-if="imgUpload.uploading.value" :model-value="imgUpload.progress.value" color="primary" rounded class="mt-2" />
+              <div v-if="pendingImages.length" class="d-flex flex-wrap ga-3 mt-3">
+                <div v-for="(img, i) in pendingImages" :key="i" class="bz-img-card">
+                  <v-img :src="img.preview" width="110" height="110" rounded="lg" cover />
+                  <div class="d-flex align-center justify-center pt-1">
+                    <v-chip v-if="img.uploaded" size="x-small" color="success" variant="tonal">
+                      <v-icon start size="11">mdi-check</v-icon> Tayyor
+                    </v-chip>
+                    <v-btn v-else icon variant="text" size="x-small" color="error" @click="pendingImages.splice(i, 1)">
+                      <v-icon size="16">mdi-close</v-icon>
+                    </v-btn>
+                  </div>
+                </div>
+              </div>
+            </template>
           </v-form>
 
-          <!-- Images -->
-          <div v-if="formTab === 'images'">
-            <div class="d-flex ga-2 mb-3">
-              <v-text-field v-model="newImageUrl" placeholder="https://… rasm URL" hide-details density="comfortable" />
-              <v-btn color="primary" rounded="lg" :loading="imageLoading" :disabled="!newImageUrl" @click="addImage">Qo'shish</v-btn>
+          <!-- Images (EDIT mode — tab) -->
+          <div v-if="editItem && formTab === 'images'">
+            <div
+              class="bz-dropzone mb-4"
+              :class="{ 'bz-dropzone-active': dropActive }"
+              @dragover.prevent="dropActive = true"
+              @dragleave="dropActive = false"
+              @drop.prevent="onDropEdit"
+              @click="$refs.editFileInput?.click()"
+            >
+              <input
+                ref="editFileInput"
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                @change="onPickEdit"
+              />
+              <v-icon size="36" color="primary" style="opacity:0.5">mdi-cloud-upload-outline</v-icon>
+              <div style="font-weight:700;font-size:13.5px;margin-top:8px">Rasmlarni shu yerga tashlang yoki bosib tanlang</div>
             </div>
-            <BzEmptyState v-if="!productImages.length" icon="mdi-image-off-outline" title="Rasmlar yo'q" />
+            <v-progress-linear v-if="imgUpload.uploading.value" :model-value="imgUpload.progress.value" color="primary" rounded class="mb-4" />
+            <BzEmptyState v-if="!productImages.length" icon="mdi-image-off-outline" title="Rasmlar yo'q" subtitle="Yuqoridagi maydondan rasm qo'shing" />
             <div v-else class="d-flex flex-wrap ga-3">
               <div
                 v-for="img in productImages" :key="img.id"
@@ -230,12 +317,17 @@
                 @dragover.prevent
                 @drop="dropImg(img.id)"
               >
-                <v-img :src="img.image || img.url" width="120" height="120" rounded="lg" cover />
+                <div style="position:relative">
+                  <BzImg :src="img.image || img.url" width="120" height="120" rounded="lg" cover />
+                  <v-chip v-if="img.is_primary" size="x-small" color="warning" variant="flat" style="position:absolute;top:4px;left:4px" class="chip-sm">
+                    <v-icon size="10">mdi-star</v-icon>
+                  </v-chip>
+                </div>
                 <div class="d-flex align-center justify-space-between pt-1">
-                  <v-btn icon variant="text" size="x-small" :color="img.is_primary ? 'warning' : ''" @click="setPrimary(img)">
+                  <v-btn icon variant="text" size="x-small" :color="img.is_primary ? 'warning' : ''" @click="setPrimary(img)" title="Asosiy qilish">
                     <v-icon size="16">{{ img.is_primary ? 'mdi-star' : 'mdi-star-outline' }}</v-icon>
                   </v-btn>
-                  <v-btn icon variant="text" size="x-small" color="error" @click="removeImage(img)">
+                  <v-btn icon variant="text" size="x-small" color="error" @click="removeImage(img)" title="O'chirish">
                     <v-icon size="16">mdi-delete-outline</v-icon>
                   </v-btn>
                 </div>
@@ -243,8 +335,8 @@
             </div>
           </div>
 
-          <!-- Stock -->
-          <v-form v-if="formTab === 'stock'">
+          <!-- Stock (edit only) -->
+          <v-form v-if="editItem && formTab === 'stock'">
             <v-row dense>
               <v-col cols="12" sm="4"><v-text-field label="Ombor miqdori" v-model.number="form.stock_qty" type="number" /></v-col>
               <v-col cols="12" sm="4"><v-text-field label="Past chegara" v-model.number="form.low_stock_threshold" type="number" /></v-col>
@@ -255,8 +347,8 @@
             </v-row>
           </v-form>
 
-          <!-- Discounts -->
-          <div v-if="formTab === 'discounts'">
+          <!-- Discounts (edit only) -->
+          <div v-if="editItem && formTab === 'discounts'">
             <BzEmptyState v-if="!discounts.length" icon="mdi-sale" title="Chegirmalar yo'q">
               <v-btn variant="tonal" color="primary" to="/discounts">Chegirma yaratish</v-btn>
             </BzEmptyState>
@@ -274,9 +366,14 @@
 
         <v-divider />
         <v-card-actions class="pa-4">
+          <div v-if="pendingImages.length && !editItem" style="font-size:12px;color:var(--bz-text-3)">
+            <v-icon size="14" class="mr-1">mdi-image-outline</v-icon> {{ pendingImages.length }} ta rasm biriktirilgan
+          </div>
           <v-spacer />
           <v-btn variant="text" @click="dialog = false">Yopish</v-btn>
-          <v-btn v-if="formTab === 'info'" color="primary" rounded="lg" :loading="saving" @click="save">Saqlash</v-btn>
+          <v-btn v-if="!editItem || formTab === 'info'" color="primary" rounded="lg" :loading="saving" @click="save">
+            <v-icon start>mdi-content-save-outline</v-icon> Saqlash
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -289,11 +386,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { productsApi, categoriesApi, discountsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
+import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
+import BzImg         from '@/components/common/BzImg.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
@@ -313,8 +412,10 @@ const formRef   = ref()
 const formTab   = ref('info')
 
 const productImages = ref([])
-const newImageUrl   = ref('')
+const pendingImages = ref([])
+const dropActive    = ref(false)
 const imageLoading  = ref(false)
+const imgUpload     = useFileUpload()
 const dragImg       = ref(null)
 const stockLoading  = ref(false)
 const assignedDiscounts = ref([])
@@ -326,7 +427,8 @@ const boolOptions = [
   { t: "Yo'q", v: 'false' },
 ]
 const pages = computed(() => Math.ceil(total.value / f.value.per_page))
-const tabsRequireEdit = computed(() => !editItem.value)
+const createFileInput = ref()
+const editFileInput  = ref()
 
 const emptyForm = () => ({
   name_uz:'', name_ru:'', category_id:null, unit:'kg', price:null, cost_price:null,
@@ -336,7 +438,7 @@ const emptyForm = () => ({
 })
 const form = ref(emptyForm())
 
-function openCreate() { editItem.value = null; form.value = emptyForm(); formTab.value = 'info'; dialog.value = true }
+function openCreate() { editItem.value = null; form.value = emptyForm(); formTab.value = 'info'; pendingImages.value = []; dialog.value = true }
 async function openEdit(p) {
   editItem.value = p
   formTab.value = 'info'
@@ -391,13 +493,17 @@ async function save() {
     } else {
       const { data } = await productsApi.create(form.value)
       const created = data.data
-      // Switch into edit mode so other tabs become available
       if (created?.id) {
+        // Upload any pending images
+        if (pendingImages.value.length) {
+          await uploadPendingImages(created.id)
+        }
         editItem.value = created
         productImages.value = []
         assignedDiscounts.value = []
+        await reloadEdit()
       }
-      snack.success("Qo'shildi")
+      snack.success("Qo'shildi — rasmlar yuklandi")
     }
     load()
   } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
@@ -425,17 +531,46 @@ async function load() {
   } catch {} finally { loading.value = false }
 }
 
-// Images
-async function addImage() {
-  if (!editItem.value || !newImageUrl.value) return
-  imageLoading.value = true
-  try {
-    await productsApi.addImages(editItem.value.id, [{ image: newImageUrl.value, is_primary: !productImages.value.length }])
-    newImageUrl.value = ''
-    await reloadEdit()
-    snack.success('Rasm qo\'shildi')
-  } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
-  finally { imageLoading.value = false }
+// Images — create mode: collect files locally
+function addPendingFiles(files) {
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue
+    pendingImages.value.push({ file: f, preview: URL.createObjectURL(f), uploaded: false })
+  }
+}
+function onPickFiles(e) { addPendingFiles(e.target.files); e.target.value = '' }
+function onDropFiles(e) { dropActive.value = false; addPendingFiles(e.dataTransfer.files) }
+
+// Images — edit mode: upload immediately
+async function uploadEditFiles(files) {
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue
+    imageLoading.value = true
+    try {
+      const url = await imgUpload.upload(f)
+      if (!url) continue
+      await productsApi.addImages(editItem.value.id, [{ image: url, is_primary: !productImages.value.length }])
+      await reloadEdit()
+      snack.success('Rasm qo\'shildi')
+    } catch (e) { snack.error(e.response?.data?.message || 'Xatolik') }
+    finally { imageLoading.value = false }
+  }
+}
+function onPickEdit(e) { uploadEditFiles(e.target.files); e.target.value = '' }
+function onDropEdit(e) { dropActive.value = false; uploadEditFiles(e.dataTransfer.files) }
+
+// Upload pending images after product creation
+async function uploadPendingImages(productId) {
+  for (let i = 0; i < pendingImages.value.length; i++) {
+    const img = pendingImages.value[i]
+    if (img.uploaded) continue
+    try {
+      const url = await imgUpload.upload(img.file)
+      if (!url) continue
+      await productsApi.addImages(productId, [{ image: url, is_primary: i === 0 }])
+      img.uploaded = true
+    } catch {}
+  }
 }
 async function removeImage(img) {
   try { await productsApi.removeImage(editItem.value.id, img.id); await reloadEdit() }
@@ -560,6 +695,55 @@ onMounted(async () => {
 }
 .bz-product-img-wrap:hover .bz-product-overlay {
   opacity: 1;
+}
+
+/* Dialog */
+.bz-dialog-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bz-dialog-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bz-dialog-tabs {
+  padding: 0 8px;
+}
+.bz-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bz-text-3);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Dropzone */
+.bz-dropzone {
+  border: 2px dashed var(--bz-border);
+  border-radius: 16px;
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--bz-dur) var(--bz-ease);
+  background: var(--bz-surface-2);
+}
+.bz-dropzone:hover {
+  border-color: var(--bz-primary);
+  background: var(--bz-primary-soft);
+}
+.bz-dropzone-active {
+  border-color: var(--bz-primary);
+  background: var(--bz-primary-soft);
+  transform: scale(1.01);
 }
 
 /* Image manager cards in dialog */
