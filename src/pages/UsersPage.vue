@@ -6,6 +6,22 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stats -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Jami xodimlar" :value="stats.total" icon="mdi-account-group-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Adminlar" :value="stats.admins" icon="mdi-shield-account-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Menejerlar" :value="stats.managers" icon="mdi-account-tie-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Kuryerlar" :value="stats.couriers" icon="mdi-bike" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" />
+      </v-col>
+    </v-row>
+
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Ism, username, telefon…" @search="onSearch">
       <v-select v-model="f.role" :items="roles" item-title="t" item-value="v" placeholder="Rol" clearable hide-details density="comfortable" style="max-width:170px" @update:model-value="load" />
       <v-select v-model="f.is_active" :items="[{t:'Faol',v:'true'},{t:'Nofaol',v:'false'}]" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:140px" @update:model-value="load" />
@@ -143,10 +159,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { usersApi } from '@/api'
+import { usersApi, statsApi } from '@/api'
 import { useFormat, ROLE_LABELS, ROLE_COLORS } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
+import BzStatCard    from '@/components/common/BzStatCard.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzSkeleton    from '@/components/common/BzSkeleton.vue'
@@ -155,6 +172,9 @@ import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+const stats = ref({ total: 0, admins: 0, managers: 0, couriers: 0 })
+const statsLoading = ref(false)
 
 const users    = ref([])
 const loading  = ref(false)
@@ -268,5 +288,15 @@ async function removeOverride(perm) {
 
 watch(formTab, t => { if (t === 'perms') loadOverrides() })
 
-onMounted(load)
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await statsApi.staff()
+    const d = data.data || {}
+    const byRole = d.by_role || {}
+    stats.value = { total: d.total || 0, admins: byRole.admin || 0, managers: byRole.manager || 0, couriers: byRole.courier || 0 }
+  } catch {} finally { statsLoading.value = false }
+}
+
+onMounted(() => { load(); loadStats() })
 </script>

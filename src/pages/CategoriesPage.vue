@@ -6,6 +6,22 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stats -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Jami" :value="stats.total" icon="mdi-tag-multiple-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Ota-kategoriyalar" :value="stats.root" icon="mdi-folder-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Subkategoriyalar" :value="stats.sub" icon="mdi-source-branch" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" />
+      </v-col>
+    </v-row>
+
     <!-- Loading -->
     <v-row v-if="loading" dense>
       <v-col v-for="n in 6" :key="n" cols="12" sm="6" md="4" lg="3">
@@ -153,15 +169,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { categoriesApi } from '@/api'
+import { categoriesApi, statsApi } from '@/api'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
+import BzStatCard    from '@/components/common/BzStatCard.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import BzImg           from '@/components/common/BzImg.vue'
 
 const snack = useSnackStore()
+
+const stats = ref({ total: 0, active: 0, root: 0, sub: 0 })
+const statsLoading = ref(false)
 
 const tree    = ref([])
 const flat    = ref([])
@@ -282,7 +302,16 @@ function flatten() {
   flat.value = out
 }
 
-onMounted(load)
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await statsApi.categories()
+    const d = data.data || {}
+    stats.value = { total: d.total || 0, active: d.active || 0, root: d.root_categories || 0, sub: d.subcategories || 0 }
+  } catch {} finally { statsLoading.value = false }
+}
+
+onMounted(() => { load(); loadStats() })
 </script>
 
 <style scoped>

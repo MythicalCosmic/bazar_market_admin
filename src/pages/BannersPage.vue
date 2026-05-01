@@ -6,6 +6,22 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stats -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Jami" :value="stats.total" icon="mdi-image-multiple-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Hozir ko'rinmoqda" :value="stats.showing" icon="mdi-eye-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Muddati tugagan" :value="stats.expired" icon="mdi-clock-alert-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="statsLoading" />
+      </v-col>
+    </v-row>
+
     <BzPageLoader v-if="loading" />
     <BzEmptyState v-else-if="!banners.length" icon="mdi-image-off-outline" title="Bannerlar yo'q">
       <v-btn variant="tonal" color="primary" @click="openCreate">Birinchi bannerni yarating</v-btn>
@@ -91,11 +107,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { bannersApi } from '@/api'
+import { bannersApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
+import BzStatCard   from '@/components/common/BzStatCard.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
@@ -103,6 +120,9 @@ import BzImg           from '@/components/common/BzImg.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+const stats = ref({ total: 0, active: 0, showing: 0, expired: 0 })
+const statsLoading = ref(false)
 
 const banners = ref([])
 const loading = ref(false)
@@ -199,5 +219,14 @@ async function load() {
   catch {} finally { loading.value = false }
 }
 
-onMounted(load)
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await statsApi.banners()
+    const d = data.data || {}
+    stats.value = { total: d.total || 0, active: d.active || 0, showing: d.currently_showing || 0, expired: d.expired || 0 }
+  } catch {} finally { statsLoading.value = false }
+}
+
+onMounted(() => { load(); loadStats() })
 </script>

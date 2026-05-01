@@ -7,6 +7,22 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stats -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Jami" :value="stats.total" icon="mdi-sale" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Mahsulotlarda" :value="stats.withProducts" icon="mdi-cube-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Kategoriyalarda" :value="stats.withCategories" icon="mdi-tag-multiple-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
+      </v-col>
+    </v-row>
+
     <v-card rounded="xl" class="bz-card pa-3">
       <BzPageLoader v-if="loading" />
       <BzEmptyState v-else-if="!discounts.length" icon="mdi-sale" title="Chegirmalar yo'q" />
@@ -122,16 +138,20 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { discountsApi, productsApi, categoriesApi } from '@/api'
+import { discountsApi, productsApi, categoriesApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
+import BzStatCard   from '@/components/common/BzStatCard.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+const stats = ref({ total: 0, active: 0, withProducts: 0, withCategories: 0 })
+const statsLoading = ref(false)
 
 const discounts   = ref([])
 const loading     = ref(false)
@@ -271,5 +291,14 @@ watch(tab, t => {
   if (t === 'categories' && !categoriesList.value.length) loadCategories()
 })
 
-onMounted(load)
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await statsApi.discounts()
+    const d = data.data || {}
+    stats.value = { total: d.total || 0, active: d.active || 0, withProducts: d.with_products || 0, withCategories: d.with_categories || 0 }
+  } catch {} finally { statsLoading.value = false }
+}
+
+onMounted(() => { load(); loadStats() })
 </script>

@@ -7,6 +7,22 @@
       </template>
     </BzPageHeader>
 
+    <!-- Stats -->
+    <v-row dense class="mb-2">
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Jami kuponlar" :value="stats.total" icon="mdi-ticket-percent-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Ishlatilgan" :value="stats.totalUses" icon="mdi-counter" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" sub="marta" />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <BzStatCard title="Chegirma summasi" :value="stats.discountGiven" suffix="UZS" icon="mdi-cash-minus" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" :format="v => fmt.compact(v)" />
+      </v-col>
+    </v-row>
+
     <v-card rounded="xl" class="bz-card pa-3">
       <BzPageLoader v-if="loading" />
       <BzEmptyState v-else-if="!coupons.length" icon="mdi-ticket-percent-outline" title="Kuponlar yo'q" />
@@ -85,16 +101,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { couponsApi } from '@/api'
+import { couponsApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
+import BzStatCard   from '@/components/common/BzStatCard.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()
+
+const stats = ref({ total: 0, active: 0, totalUses: 0, discountGiven: 0 })
+const statsLoading = ref(false)
 
 const coupons   = ref([])
 const loading   = ref(false)
@@ -174,5 +194,14 @@ async function load() {
   } catch {} finally { loading.value = false }
 }
 
-onMounted(load)
+async function loadStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await statsApi.coupons()
+    const d = data.data || {}
+    stats.value = { total: d.total || 0, active: d.active || 0, totalUses: d.total_uses || 0, discountGiven: Number(d.total_discount_given || 0) }
+  } catch {} finally { statsLoading.value = false }
+}
+
+onMounted(() => { load(); loadStats() })
 </script>
