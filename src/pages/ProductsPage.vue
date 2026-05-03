@@ -145,7 +145,7 @@
                 variant="tonal" size="x-small" class="chip-sm"
               >
                 <v-icon start size="11">{{ item.in_stock ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
-                {{ item.stock_qty ?? 0 }} {{ item.unit || 'ta' }}
+                {{ Math.round(item.stock_qty ?? 0) }} {{ item.unit || 'ta' }}
               </v-chip>
             </div>
 
