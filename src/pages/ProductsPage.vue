@@ -631,7 +631,6 @@ async function load() {
     const { data } = await productsApi.list(fmt.cleanParams({ ...f.value }))
     products.value = data.data?.items || data.data || []
     total.value    = data.data?.total || 0
-    pStats.value.totalValue = Number(data.data?.total_money || 0)
   } catch {} finally { loading.value = false }
 }
 
@@ -770,19 +769,30 @@ async function saveReorder() {
 async function loadProductStats() {
   pStatsLoading.value = true
   try {
-    // Fetch API stats + full product list in parallel
+    // Fetch API stats + first page in parallel
     const [sRes, pRes] = await Promise.allSettled([
       statsApi.products(),
-      productsApi.list({ per_page: 500 }),
+      productsApi.list({ per_page: 100, page: 1 }),
     ])
     const api = sRes.status === 'fulfilled' ? (sRes.value.data.data || {}) : {}
-    const all = pRes.status === 'fulfilled' ? (pRes.value.data.data?.items || []) : []
+    const firstPage = pRes.status === 'fulfilled' ? (pRes.value.data.data || {}) : {}
+    let all = [...(firstPage.items || [])]
+
+    // Fetch remaining pages if needed
+    const totalPages = firstPage.total_pages || 1
+    if (totalPages > 1) {
+      const rest = await Promise.allSettled(
+        Array.from({ length: totalPages - 1 }, (_, i) => productsApi.list({ per_page: 100, page: i + 2 }))
+      )
+      rest.forEach(r => { if (r.status === 'fulfilled') all.push(...(r.value.data.data?.items || [])) })
+    }
 
     // Compute from product list what the API doesn't provide
-    let inStock = 0, lowStock = 0, discounted = 0
+    let inStock = 0, lowStock = 0, totalValue = 0, discounted = 0
     all.forEach(p => {
       if (p.in_stock) inStock++
       if (p.is_low_stock) lowStock++
+      if (p.stock_qty != null) totalValue += Number(p.price || 0) * Number(p.stock_qty || 0)
       if (p.discount && p.discounted_price && p.discounted_price !== p.price) discounted++
     })
 
@@ -791,7 +801,7 @@ async function loadProductStats() {
       active:     api.active ?? all.filter(p => p.is_active).length,
       inStock:    api.in_stock ?? inStock,
       lowStock:   api.low_stock ?? lowStock,
-      totalValue: pStats.value.totalValue || 0,
+      totalValue: totalValue,
       discounted: api.with_discount ?? discounted,
     }
   } catch {} finally { pStatsLoading.value = false }
