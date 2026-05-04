@@ -631,6 +631,7 @@ async function load() {
     const { data } = await productsApi.list(fmt.cleanParams({ ...f.value }))
     products.value = data.data?.items || data.data || []
     total.value    = data.data?.total || 0
+    pStats.value.totalValue = Number(data.data?.total_money || 0)
   } catch {} finally { loading.value = false }
 }
 
@@ -778,11 +779,10 @@ async function loadProductStats() {
     const all = pRes.status === 'fulfilled' ? (pRes.value.data.data?.items || []) : []
 
     // Compute from product list what the API doesn't provide
-    let inStock = 0, lowStock = 0, totalValue = 0, discounted = 0
+    let inStock = 0, lowStock = 0, discounted = 0
     all.forEach(p => {
       if (p.in_stock) inStock++
       if (p.is_low_stock) lowStock++
-      totalValue += Number(p.price || 0) * Number(p.stock_qty || 0)
       if (p.discount && p.discounted_price && p.discounted_price !== p.price) discounted++
     })
 
@@ -791,7 +791,7 @@ async function loadProductStats() {
       active:     api.active ?? all.filter(p => p.is_active).length,
       inStock:    api.in_stock ?? inStock,
       lowStock:   api.low_stock ?? lowStock,
-      totalValue: Number(api.total_value || api.total_price || 0) || totalValue,
+      totalValue: pStats.value.totalValue || 0,
       discounted: api.with_discount ?? discounted,
     }
   } catch {} finally { pStatsLoading.value = false }
