@@ -19,6 +19,7 @@ const routes = [
 
       { path: 'orders',          name: 'orders',           component: () => import('@/pages/OrdersPage.vue'),         meta: { perm: 'view_orders' } },
       { path: 'orders/:id',      name: 'order-detail',     component: () => import('@/pages/OrderDetailPage.vue'),    meta: { perm: 'view_orders' } },
+      { path: 'courier',         name: 'courier',          component: () => import('@/pages/CourierOrdersPage.vue') },
 
       { path: 'products',        name: 'products',         component: () => import('@/pages/ProductsPage.vue'),       meta: { perm: 'view_products' } },
       { path: 'categories',      name: 'categories',       component: () => import('@/pages/CategoriesPage.vue'),     meta: { perm: 'view_categories' } },

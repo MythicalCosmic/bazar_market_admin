@@ -10,8 +10,7 @@
         :initial="{ opacity: 0, scale: 0.96, y: 20 }"
         :enter="{ opacity: 1, scale: 1, y: 0, transition: { duration: 480 } }"
         rounded="xl"
-        width="440"
-        class="pa-8 bz-card"
+        class="pa-8 bz-card bz-login-card"
         style="box-shadow:var(--bz-shadow-lg);border:1px solid var(--bz-border);position:relative;backdrop-filter:blur(8px);background:rgba(255,255,255,0.92)"
       >
         <!-- Logo -->
@@ -112,6 +111,16 @@ async function submit() {
 <style scoped>
 .login-bg {
   background: linear-gradient(135deg, #ECFDF5 0%, #F8FAFC 50%, #EFF6FF 100%);
+  padding: 16px;
+}
+.bz-login-card {
+  width: 440px;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .bz-login-card {
+    padding: 24px !important;
+  }
 }
 .bz-mesh {
   position: absolute;

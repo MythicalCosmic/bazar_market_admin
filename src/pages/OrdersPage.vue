@@ -14,18 +14,18 @@
         v-model="f.payment_method"
         :items="payMethods" item-title="t" item-value="v"
         placeholder="To'lov turi" clearable hide-details density="comfortable"
-        style="max-width:160px"
+        class="bz-flt"
         @update:model-value="load"
       />
       <v-select
         v-model="f.payment_status"
         :items="payStatuses" item-title="t" item-value="v"
         placeholder="To'lov holati" clearable hide-details density="comfortable"
-        style="max-width:170px"
+        class="bz-flt"
         @update:model-value="load"
       />
-      <v-text-field v-model="f.date_from" type="date" label="Dan"  hide-details density="comfortable" style="min-width:175px;max-width:175px" @change="load" />
-      <v-text-field v-model="f.date_to"   type="date" label="Gacha" hide-details density="comfortable" style="min-width:175px;max-width:175px" @change="load" />
+      <v-text-field v-model="f.date_from" type="date" label="Dan"  hide-details density="comfortable" class="bz-flt-date" @change="load" />
+      <v-text-field v-model="f.date_to"   type="date" label="Gacha" hide-details density="comfortable" class="bz-flt-date" @change="load" />
     </BzFilterBar>
 
     <!-- Status tabs (real counts from /stats/orders) -->
@@ -235,4 +235,15 @@ onMounted(() => { load(); loadStatusCounts() })
 
 :deep(.v-data-table__td) { white-space: nowrap; }
 :deep(.v-data-table__td:has(.bz-customer-cell)) { white-space: normal; }
+
+.bz-flt { max-width: 170px; min-width: 140px; }
+.bz-flt-date { min-width: 165px; max-width: 175px; }
+
+@media (max-width: 600px) {
+  .bz-flt, .bz-flt-date {
+    max-width: 100% !important;
+    min-width: 100% !important;
+    width: 100%;
+  }
+}
 </style>

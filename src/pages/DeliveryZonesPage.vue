@@ -9,7 +9,7 @@
     <v-row>
       <!-- List left -->
       <v-col cols="12" md="4">
-        <v-card rounded="xl" class="bz-card pa-3" style="max-height:calc(100vh - 180px);overflow:auto">
+        <v-card rounded="xl" class="bz-card pa-3 bz-zones-list">
           <BzPageLoader v-if="loading" :size="32" />
           <BzEmptyState v-else-if="!zones.length" icon="mdi-map-marker-off-outline" title="Zonalar yo'q" />
           <v-list v-else class="pa-0">
@@ -56,7 +56,7 @@
 
       <!-- Map right -->
       <v-col cols="12" md="8">
-        <v-card rounded="xl" class="bz-card" style="height:calc(100vh - 180px);overflow:hidden">
+        <v-card rounded="xl" class="bz-card bz-zones-map">
           <ZoneMap
             :zones="zones"
             :selected-id="selectedId"
@@ -222,3 +222,24 @@ async function load() {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.bz-zones-list {
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+}
+.bz-zones-map {
+  height: calc(100vh - 180px);
+  overflow: hidden;
+}
+
+@media (max-width: 960px) {
+  .bz-zones-list {
+    max-height: 320px;
+  }
+  .bz-zones-map {
+    height: 60vh;
+    min-height: 380px;
+  }
+}
+</style>

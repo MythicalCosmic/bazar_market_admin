@@ -4,10 +4,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import 'leaflet-draw'
-import 'leaflet-draw/dist/leaflet.draw.css'
+import { loadYandexMaps, MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM } from '@/composables/useYandexMaps'
 
 const props = defineProps({
   zones:    { type: Array, default: () => [] },
@@ -16,111 +13,165 @@ const props = defineProps({
   marker:   { type: Object, default: null }, // { lat, lng, label }
   height:   { type: String, default: '100%' },
   radius:   { type: Number, default: 16 },
-  center:   { type: Array, default: () => [41.3111, 69.2797] }, // Tashkent
-  zoom:     { type: Number, default: 11 },
+  center:   { type: Array, default: () => [...MAP_DEFAULT_CENTER] }, // Marhamat tumani [lat, lng]
+  zoom:     { type: Number, default: MAP_DEFAULT_ZOOM },
   readonly: { type: Boolean, default: false },
 })
 const emit = defineEmits(['draw', 'edit', 'select'])
 
 const mapEl = ref(null)
+let ymaps = null
 let map = null
-let drawControl = null
-let drawnGroup = null
-const layerById = new Map()
+let ready = false
+let drawPoly = null
+let markerObj = null
+const objById = new Map()      // zoneId -> ymaps.Polygon
+const origCoords = new Map()   // zoneId -> JSON snapshot taken when editing started
 
-function colorFor(zone, isSelected) {
-  if (!zone.is_active) return { color: '#94A3B8', fillColor: '#94A3B8' }
-  if (isSelected)      return { color: '#16A34A', fillColor: '#22C55E' }
-  return { color: '#3B82F6', fillColor: '#60A5FA' }
+function styleFor(zone, isSelected) {
+  if (!zone.is_active) return { strokeColor: '#94A3B8', fillColor: '#94A3B8' }
+  if (isSelected)      return { strokeColor: '#16A34A', fillColor: '#22C55E' }
+  return { strokeColor: '#3B82F6', fillColor: '#60A5FA' }
+}
+
+// GeoJSON Polygon (rings of [lng, lat]) -> Yandex contours (rings of [lat, lng]).
+function geojsonToContours(geom) {
+  return (geom.coordinates || []).map(ring => ring.map(([lng, lat]) => [lat, lng]))
+}
+// Yandex contours (rings of [lat, lng]) -> GeoJSON Polygon (rings of [lng, lat], closed).
+function contoursToGeojson(contours) {
+  const coordinates = contours.map(ring => {
+    const r = ring.map(([lat, lng]) => [lng, lat])
+    const first = r[0]
+    const last = r[r.length - 1]
+    if (first && last && (first[0] !== last[0] || first[1] !== last[1])) r.push([...first])
+    return r
+  })
+  return { type: 'Polygon', coordinates }
 }
 
 function rebuildLayers() {
-  if (!map || !drawnGroup) return
-  drawnGroup.clearLayers()
-  layerById.clear()
+  if (!ready) return
+  for (const obj of objById.values()) map.geoObjects.remove(obj)
+  objById.clear()
 
   for (const z of props.zones) {
     if (!z.polygon) continue
     try {
-      const layer = L.geoJSON(z.polygon, {
-        style: () => ({ ...colorFor(z, z.id === props.selectedId), weight: 2, fillOpacity: 0.18 }),
+      const s = styleFor(z, z.id === props.selectedId)
+      const poly = new ymaps.Polygon(geojsonToContours(z.polygon), { zoneId: z.id }, {
+        fillColor: s.fillColor, fillOpacity: 0.18, strokeColor: s.strokeColor, strokeWidth: 2,
       })
-      layer.eachLayer(l => {
-        l.on('click', () => emit('select', z.id))
-        drawnGroup.addLayer(l)
-        layerById.set(z.id, l)
-      })
+      poly.events.add('click', () => emit('select', z.id))
+      map.geoObjects.add(poly)
+      objById.set(z.id, poly)
     } catch { /* skip malformed */ }
   }
+
+  if (props.drawing && !props.readonly) enableEditing()
 }
 
 function fitToSelected() {
-  const layer = layerById.get(props.selectedId)
-  if (layer && map) map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 14 })
+  const obj = objById.get(props.selectedId)
+  if (!obj || !map) return
+  map.setBounds(obj.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 40 })
+    .then(() => { if (map.getZoom() > 14) map.setZoom(14) })
+    .catch(() => {})
+}
+
+function startDrawing() {
+  if (!map || props.readonly) return
+  cancelDrawing()
+  drawPoly = new ymaps.Polygon([], {}, {
+    editorDrawingCursor: 'crosshair',
+    fillColor: '#22C55E', fillOpacity: 0.18, strokeColor: '#16A34A', strokeWidth: 2,
+  })
+  map.geoObjects.add(drawPoly)
+  drawPoly.editor.startDrawing()
+  drawPoly.editor.events.add('drawingstop', onDrawingStop)
+}
+
+function onDrawingStop(e) {
+  if (!drawPoly) return
+  const coords = drawPoly.geometry.getCoordinates()
+  if (!coords || !coords[0] || coords[0].length < 3) return
+  if (e && e.get && e.get('handled')) return
+  if (e && e.set) e.set('handled', true)
+  drawPoly.editor.stopDrawing()
+  drawPoly.editor.stopEditing()
+  const geom = contoursToGeojson(coords)
+  map.geoObjects.remove(drawPoly)
+  drawPoly = null
+  emit('draw', geom)
+}
+
+function cancelDrawing() {
+  if (!drawPoly) return
+  try { drawPoly.editor.stopDrawing(); drawPoly.editor.stopEditing() } catch {}
+  map.geoObjects.remove(drawPoly)
+  drawPoly = null
+}
+
+function enableEditing() {
+  for (const [id, poly] of objById.entries()) {
+    try {
+      origCoords.set(id, JSON.stringify(poly.geometry.getCoordinates()))
+      poly.editor.startEditing()
+    } catch {}
+  }
+}
+
+function collectEdits() {
+  const edits = []
+  for (const [id, poly] of objById.entries()) {
+    try {
+      poly.editor.stopEditing()
+      const now = JSON.stringify(poly.geometry.getCoordinates())
+      if (origCoords.has(id) && origCoords.get(id) !== now) {
+        edits.push({ id, geometry: contoursToGeojson(poly.geometry.getCoordinates()) })
+      }
+    } catch {}
+  }
+  origCoords.clear()
+  if (edits.length) emit('edit', edits)
+}
+
+function addMarker() {
+  if (markerObj) { map.geoObjects.remove(markerObj); markerObj = null }
+  if (!props.marker) return
+  markerObj = new ymaps.Placemark([props.marker.lat, props.marker.lng], {
+    hintContent: props.marker.label || '',
+  })
+  map.geoObjects.add(markerObj)
+  map.setCenter([props.marker.lat, props.marker.lng], 14)
 }
 
 onMounted(async () => {
   await nextTick()
-  map = L.map(mapEl.value, { zoomControl: true }).setView(props.center, props.zoom)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap',
-  }).addTo(map)
-
-  drawnGroup = new L.FeatureGroup()
-  map.addLayer(drawnGroup)
-
-  if (!props.readonly) {
-    drawControl = new L.Control.Draw({
-      draw: {
-        polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: '#16A34A', weight: 2 } },
-        polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false,
-      },
-      edit: { featureGroup: drawnGroup, remove: false },
-    })
-
-    map.on(L.Draw.Event.CREATED, e => {
-      const geo = e.layer.toGeoJSON().geometry
-      emit('draw', geo)
-    })
-    map.on(L.Draw.Event.EDITED, e => {
-      const edits = []
-      e.layers.eachLayer(l => edits.push({ id: idForLayer(l), geometry: l.toGeoJSON().geometry }))
-      if (edits.length) emit('edit', edits)
-    })
-  }
+  try {
+    ymaps = await loadYandexMaps()
+  } catch { return }
+  map = new ymaps.Map(mapEl.value, {
+    center: props.center,
+    zoom: props.zoom,
+    controls: ['zoomControl'],
+  }, { suppressMapOpenBlock: true })
+  ready = true
 
   rebuildLayers()
   if (props.marker) addMarker()
   fitToSelected()
+  if (props.drawing && !props.readonly) startDrawing()
 })
-
-function idForLayer(layer) {
-  for (const [id, l] of layerById.entries()) if (l === layer) return id
-  return null
-}
-
-let markerLayer = null
-function addMarker() {
-  if (markerLayer) { map.removeLayer(markerLayer); markerLayer = null }
-  if (!props.marker) return
-  markerLayer = L.marker([props.marker.lat, props.marker.lng]).addTo(map)
-  if (props.marker.label) markerLayer.bindTooltip(props.marker.label, { permanent: false })
-  map.setView([props.marker.lat, props.marker.lng], 14)
-}
 
 watch(() => props.zones, rebuildLayers, { deep: true })
 watch(() => props.selectedId, () => { rebuildLayers(); fitToSelected() })
-watch(() => props.marker, addMarker, { deep: true })
+watch(() => props.marker, () => { if (ready) addMarker() }, { deep: true })
 watch(() => props.drawing, on => {
-  if (!drawControl || !map) return
-  if (on) {
-    map.addControl(drawControl)
-    new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable()
-  } else {
-    try { map.removeControl(drawControl) } catch {}
-  }
+  if (!ready || props.readonly) return
+  if (on) { startDrawing(); enableEditing() }
+  else { cancelDrawing(); collectEdits() }
 })
 
-onBeforeUnmount(() => { map?.remove(); map = null })
+onBeforeUnmount(() => { if (map) { map.destroy(); map = null } })
 </script>

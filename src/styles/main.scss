@@ -172,3 +172,108 @@ body {
 // Leaflet z-index fixes (under Vuetify dialogs)
 .leaflet-pane, .leaflet-control { z-index: 1 !important; }
 .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+
+// ──────────────────────────────────────────────────────────
+// Responsive / mobile rules
+// ──────────────────────────────────────────────────────────
+
+// Tables: enable horizontal scroll on small screens so columns aren't crushed
+.v-data-table {
+  .v-table__wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+// Make any v-card that contains a table allow horizontal scroll
+.bz-card .v-data-table,
+.v-card .v-data-table {
+  max-width: 100%;
+}
+
+@media (max-width: 960px) {
+  .page-title { font-size: 19px; letter-spacing: -0.4px; }
+  .page-subtitle { font-size: 12px; }
+
+  // Data table rows: a bit smaller text
+  .v-data-table .v-data-table__td,
+  .v-data-table .v-data-table__th {
+    font-size: 12.5px !important;
+    padding: 0 10px !important;
+  }
+
+  // Make dialogs use viewport width nicely
+  .v-overlay__content > .v-card,
+  .v-dialog > .v-overlay__content {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  // Filter bar children: full width, stack
+  .bz-filterbar-stack > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  // Reduce v-row negative margin on tiny screens
+  .v-row {
+    margin-left: -6px;
+    margin-right: -6px;
+  }
+  .v-col, .v-row > [class^="v-col"] {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  // Page-level cards: tighter padding
+  .v-card.pa-5 { padding: 16px !important; }
+  .v-card.pa-6 { padding: 16px !important; }
+  .v-card.pa-4 { padding: 12px !important; }
+
+  // Header buttons can wrap
+  .bz-page-header-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-title { font-size: 18px; }
+
+  // Dialogs effectively full-screen on phone
+  .v-dialog > .v-overlay__content {
+    margin: 12px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  // Pagination shrinks
+  .v-pagination__list { gap: 2px; }
+  .v-pagination .v-btn { --v-btn-height: 32px !important; min-width: 32px !important; }
+
+  // Avoid massive bottom-sheet menus
+  .v-menu > .v-overlay__content {
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  // Stat card numbers a touch smaller
+  .stat-card .num { font-size: 22px !important; }
+
+  // Tabs scroll horizontally already, just keep label compact
+  .v-tab { font-size: 12.5px !important; }
+
+  // Vuetify form inputs: smaller min height
+  .v-field { font-size: 14px; }
+
+  // Buttons w/ long labels: don't overflow
+  .v-btn { padding-left: 12px !important; padding-right: 12px !important; }
+  .v-btn--icon { padding: 0 !important; }
+}
+
+// Always: prevent horizontal page scroll caused by leaky widths
+html, body {
+  overflow-x: hidden;
+}
+
+// Containers should not exceed viewport
+.v-main, .v-application {
+  max-width: 100%;
+}

@@ -30,10 +30,10 @@
     </v-row>
 
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Mahsulot nomi…" @search="onSearch">
-      <v-select v-model="f.category_id" :items="categories" item-title="name" item-value="id" placeholder="Kategoriya" clearable hide-details density="comfortable" style="max-width:220px" @update:model-value="load" />
-      <v-select v-model="f.is_active" :items="[{t:'Faol',v:'true'},{t:'Nofaol',v:'false'}]" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:140px" @update:model-value="load" />
-      <v-select v-model="f.in_stock" :items="boolOptions" item-title="t" item-value="v" placeholder="Omborda" clearable hide-details density="comfortable" style="max-width:130px" @update:model-value="load" />
-      <v-select v-model="f.has_discount" :items="boolOptions" item-title="t" item-value="v" placeholder="Chegirma" clearable hide-details density="comfortable" style="max-width:140px" @update:model-value="load" />
+      <v-select v-model="f.category_id" :items="categories" item-title="name" item-value="id" placeholder="Kategoriya" clearable hide-details density="comfortable" class="bz-flt bz-flt-wide" @update:model-value="load" />
+      <v-select v-model="f.is_active" :items="[{t:'Faol',v:'true'},{t:'Nofaol',v:'false'}]" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" class="bz-flt" @update:model-value="load" />
+      <v-select v-model="f.in_stock" :items="boolOptions" item-title="t" item-value="v" placeholder="Omborda" clearable hide-details density="comfortable" class="bz-flt" @update:model-value="load" />
+      <v-select v-model="f.has_discount" :items="boolOptions" item-title="t" item-value="v" placeholder="Chegirma" clearable hide-details density="comfortable" class="bz-flt" @update:model-value="load" />
     </BzFilterBar>
 
     <!-- Loading skeletons -->
@@ -269,9 +269,9 @@
             <!-- Section: Quantities -->
             <div class="bz-section-label mt-4"><v-icon size="14" class="mr-1">mdi-scale-balance</v-icon> Miqdor sozlamalari</div>
             <v-row dense>
-              <v-col cols="12" sm="4"><v-text-field label="Min miqdor" v-model.number="form.min_qty" type="number" /></v-col>
-              <v-col cols="12" sm="4"><v-text-field label="Max miqdor" v-model.number="form.max_qty" type="number" /></v-col>
-              <v-col cols="12" sm="4"><v-text-field label="Qadam" v-model.number="form.step" type="number" step="0.1" /></v-col>
+              <v-col cols="12" sm="4"><v-text-field :label="`Min miqdor${qtyUnitSuffix}`" v-model.number="minQtyDisplay" type="number" /></v-col>
+              <v-col cols="12" sm="4"><v-text-field :label="`Max miqdor${qtyUnitSuffix}`" v-model.number="maxQtyDisplay" type="number" /></v-col>
+              <v-col cols="12" sm="4"><v-text-field :label="`Qadam${qtyUnitSuffix}`" v-model.number="stepDisplay" type="number" :step="isKgUnit ? 1 : 0.1" /></v-col>
             </v-row>
 
             <!-- Description -->
@@ -537,6 +537,27 @@ const emptyForm = () => ({
   sort_order:0, is_active:true, is_featured:false,
 })
 const form = ref(emptyForm())
+
+// kg products are entered/displayed in grams but stored in kg.
+const GRAMS_PER_KG = 1000
+const isKgUnit = computed(() => form.value.unit === 'kg')
+const qtyUnitSuffix = computed(() => (isKgUnit.value ? ' (g)' : ''))
+function gramQty(key) {
+  return computed({
+    get() {
+      const v = form.value[key]
+      if (v == null || v === '') return v
+      return isKgUnit.value ? Math.round(v * GRAMS_PER_KG) : v
+    },
+    set(v) {
+      if (v == null || v === '') { form.value[key] = null; return }
+      form.value[key] = isKgUnit.value ? v / GRAMS_PER_KG : v
+    },
+  })
+}
+const minQtyDisplay = gramQty('min_qty')
+const maxQtyDisplay = gramQty('max_qty')
+const stepDisplay = gramQty('step')
 
 function openCreate() { editItem.value = null; form.value = emptyForm(); formTab.value = 'info'; pendingImages.value = []; dialog.value = true }
 async function openEdit(p) {
@@ -981,5 +1002,19 @@ onMounted(async () => {
 }
 .bz-reorder-row:hover .bz-drag-handle {
   opacity: 0.8;
+}
+
+.bz-flt { max-width: 160px; min-width: 130px; }
+.bz-flt-wide { max-width: 220px; min-width: 180px; }
+
+@media (max-width: 600px) {
+  .bz-flt, .bz-flt-wide {
+    max-width: 100% !important;
+    min-width: 100% !important;
+    width: 100%;
+  }
+  .bz-dialog-header { padding: 14px 16px 10px; }
+  .bz-dialog-icon { width: 36px; height: 36px; border-radius: 10px; }
+  :deep(.v-card-text.pa-5) { padding: 16px !important; }
 }
 </style>
