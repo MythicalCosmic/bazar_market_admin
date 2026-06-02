@@ -345,7 +345,7 @@ const refundReason = ref('')
 const refundTarget = ref(null)
 const refundLoading = ref(false)
 
-const STATUS_BG = { pending:'#F59E0B', confirmed:'#3B82F6', preparing:'#60A5FA', delivering:'#8B5CF6', delivered:'#16A34A', completed:'#22C55E', cancelled:'#EF4444' }
+const STATUS_BG = { pending:'#F59E0B', confirmed:'#6366F1', preparing:'#06B6D4', delivering:'#A855F7', delivered:'#10B981', completed:'#10B981', cancelled:'#F43F5E' }
 function statusBg(s) { return STATUS_BG[s] || '#94A3B8' }
 
 const hasGeo = computed(() => order.value?.address?.latitude && order.value?.address?.longitude)

@@ -23,8 +23,25 @@ export default defineConfig({
   },
   worker: {
     format: 'es',
+    rollupOptions: {
+      // Optional GPU backend (peer dep of @imgly/background-removal) is not
+      // installed; externalize so the worker bundle builds. The library
+      // falls back gracefully when the backend is unavailable.
+      external: [/^onnxruntime-web/],
+    },
   },
   build: {
     chunkSizeWarningLimit: 5000,
+    rollupOptions: {
+      external: [/^onnxruntime-web/],
+      output: {
+        manualChunks: {
+          vue:        ['vue', 'vue-router', 'pinia'],
+          vuetify:    ['vuetify'],
+          charts:     ['apexcharts', 'vue3-apexcharts'],
+          maps:       ['leaflet', 'leaflet-draw'],
+        },
+      },
+    },
   },
 })

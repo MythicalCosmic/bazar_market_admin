@@ -11,108 +11,216 @@ html, body {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bz-surface-2);
   color: var(--bz-text-1);
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.page-title {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-  line-height: 1.15;
-  color: var(--bz-text-1);
+// ──────────────────────────────────────────────────────────────
+//  Aurora canvas — static CSS gradients (no JS / no canvas).
+//  The Vuetify app surface is transparent so this shows through.
+// ──────────────────────────────────────────────────────────────
+.v-application {
+  background: var(--bz-canvas) !important;
+  background-attachment: fixed;
+}
+.v-application__wrap { background: transparent; }
+
+// ──────────────────────────────────────────────────────────────
+//  THE glass recipe. One place — every surface reuses it.
+//  Performance: live blur is only ever applied to small fixed
+//  chrome (see usage). Fallbacks collapse it to a solid fill.
+// ──────────────────────────────────────────────────────────────
+.bz-glass {
+  position: relative;
+  background: var(--bz-glass-bg-strong);
+  -webkit-backdrop-filter: blur(var(--bz-glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--bz-glass-blur)) saturate(160%);
+  border: 1px solid var(--bz-glass-border);
+  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
 }
 
+// Frosted glass card — real translucency + blur so the aurora shows through.
+.bz-card {
+  position: relative;
+  background: var(--bz-glass-bg);
+  border: 1px solid var(--bz-glass-border);
+  border-radius: var(--bz-radius-xl);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
+  transition: box-shadow var(--bz-dur) var(--bz-ease),
+              transform var(--bz-dur) var(--bz-ease),
+              border-color var(--bz-dur) var(--bz-ease);
+}
+.bz-card-hover { cursor: pointer; }
+.bz-card-hover:hover {
+  box-shadow: var(--bz-glow-soft), var(--bz-shadow-lg), inset 0 1px 0 var(--bz-glass-highlight);
+  transform: translateY(-3px);
+  border-color: var(--bz-primary-glow);
+}
+
+// Vuetify cards inherit the same frosted-glass look by default.
+.v-card.v-theme--light,
+.v-card.v-theme--dark {
+  background: var(--bz-glass-bg) !important;
+  border: 1px solid var(--bz-glass-border);
+  border-radius: var(--bz-radius-xl);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight) !important;
+}
+// Opt-in stronger glass + blur for elevated/overlay cards.
+.v-overlay__content > .v-card,
+.v-menu > .v-overlay__content > .v-card,
+.v-menu > .v-overlay__content > .v-list {
+  background: var(--bz-glass-bg-strong) !important;
+  -webkit-backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
+  backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
+  border: 1px solid var(--bz-glass-border) !important;
+  box-shadow: var(--bz-shadow-lg), inset 0 1px 0 var(--bz-glass-highlight) !important;
+}
+
+// ── Fallback 1: browser can't do backdrop-filter → solid fills ──
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .bz-glass, .bz-card,
+  .v-card.v-theme--light, .v-card.v-theme--dark,
+  .v-overlay__content > .v-card,
+  .v-menu > .v-overlay__content > .v-card,
+  .v-menu > .v-overlay__content > .v-list {
+    background: var(--bz-glass-bg-solid) !important;
+  }
+}
+
+// ── Fallback 2: user asked to reduce effects (data-bz-lite) ─────
+[data-bz-lite] {
+  .bz-glass, .bz-card,
+  .v-card.v-theme--light, .v-card.v-theme--dark,
+  .v-overlay__content > .v-card,
+  .v-menu > .v-overlay__content > .v-card,
+  .v-menu > .v-overlay__content > .v-list {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: var(--bz-glass-bg-solid) !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+// ── Fallback 3: OS reduced-motion → no drift/entrance animation ─
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Typography
+// ──────────────────────────────────────────────────────────────
+.page-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+  line-height: 1.12;
+  color: var(--bz-text-1);
+}
 .page-subtitle {
   font-size: 13px;
   color: var(--bz-text-3);
   margin-top: 4px;
+  font-weight: 500;
 }
-
 .section-label {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.9px;
   text-transform: uppercase;
   color: var(--bz-text-3);
 }
-
 .num {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
-
-.bz-card {
-  background: var(--bz-surface-1);
-  border: 1px solid var(--bz-border);
-  border-radius: var(--bz-radius-lg);
-  box-shadow: var(--bz-shadow-sm);
-  transition: box-shadow var(--bz-dur) var(--bz-ease), transform var(--bz-dur) var(--bz-ease);
+// Gradient-emerald display text for hero numbers.
+.bz-gradient-text {
+  background: linear-gradient(120deg, var(--bz-primary-strong), var(--bz-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.bz-card-hover:hover {
-  box-shadow: var(--bz-shadow-md);
-  transform: translateY(-2px);
-}
-
+// ──────────────────────────────────────────────────────────────
+//  Stat card — glass + emerald glow on hover
+// ──────────────────────────────────────────────────────────────
 .stat-card {
-  background: var(--bz-surface-1);
+  position: relative;
+  background: var(--bz-glass-bg);
   border: 1px solid var(--bz-border);
   border-radius: var(--bz-radius-lg) !important;
-  box-shadow: var(--bz-shadow-sm);
-  transition: box-shadow var(--bz-dur) var(--bz-ease), transform var(--bz-dur) var(--bz-ease);
+  box-shadow: var(--bz-shadow-sm), inset 0 1px 0 var(--bz-glass-highlight);
+  transition: box-shadow var(--bz-dur) var(--bz-ease),
+              transform var(--bz-dur) var(--bz-ease),
+              border-color var(--bz-dur) var(--bz-ease);
   overflow: hidden;
-  position: relative;
 
   &::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, transparent 60%, var(--bz-primary-soft) 130%);
+    background: radial-gradient(120% 120% at 100% 0%, var(--bz-primary-soft), transparent 60%);
     opacity: 0;
     transition: opacity var(--bz-dur) var(--bz-ease);
     pointer-events: none;
   }
   &:hover {
-    box-shadow: var(--bz-shadow-lg);
+    box-shadow: var(--bz-glow-soft), var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
     transform: translateY(-3px);
+    border-color: var(--bz-primary-glow);
     &::after { opacity: 1; }
   }
 }
 
+// ──────────────────────────────────────────────────────────────
+//  Sidebar nav item — animated active pill w/ emerald glow
+// ──────────────────────────────────────────────────────────────
 .nav-item {
   position: relative;
-  transition: background var(--bz-dur-fast) var(--bz-ease), color var(--bz-dur-fast) var(--bz-ease);
+  transition: background var(--bz-dur-fast) var(--bz-ease),
+              color var(--bz-dur-fast) var(--bz-ease);
   font-size: 13.5px;
   font-weight: 600;
   border-radius: var(--bz-radius-md) !important;
+  margin-bottom: 2px;
 
   &::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 12px;
-    bottom: 12px;
+    top: 9px;
+    bottom: 9px;
     width: 3px;
     border-radius: 0 3px 3px 0;
     background: transparent;
-    transition: background var(--bz-dur) var(--bz-ease), transform var(--bz-dur) var(--bz-ease-spring);
+    transition: background var(--bz-dur) var(--bz-ease),
+                transform var(--bz-dur) var(--bz-ease-spring);
     transform: scaleY(0);
   }
-
+  &:hover { background: var(--bz-primary-soft); }
   &.v-list-item--active {
     background: var(--bz-primary-soft) !important;
-    color: var(--bz-primary) !important;
+    color: var(--bz-primary-strong) !important;
+    box-shadow: inset 0 0 0 1px var(--bz-primary-glow);
     .v-icon { color: var(--bz-primary) !important; }
-    &::before {
-      background: var(--bz-primary);
-      transform: scaleY(1);
-    }
+    &::before { background: var(--bz-primary); transform: scaleY(1); }
   }
 }
+.v-theme--dark .nav-item.v-list-item--active { color: var(--bz-primary) !important; }
 
 .chip-sm {
   font-size: 11px !important;
@@ -124,46 +232,106 @@ body {
 
 .cursor-pointer { cursor: pointer; }
 
-// Page transitions
-.bz-page-enter-active { transition: opacity var(--bz-dur) var(--bz-ease-out), transform var(--bz-dur) var(--bz-ease-out); }
+// Compact KPI rail — used on dashboards and list pages for a consistent,
+// dense metric strip (auto-fits tiles across the available width).
+.bz-kpi-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Transitions
+// ──────────────────────────────────────────────────────────────
+.bz-page-enter-active { transition: opacity var(--bz-dur-slow) var(--bz-ease-out), transform var(--bz-dur-slow) var(--bz-ease-out); }
 .bz-page-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease); }
-.bz-page-enter-from   { opacity: 0; transform: translateY(8px); }
+.bz-page-enter-from   { opacity: 0; transform: translateY(10px) scale(0.995); }
 .bz-page-leave-to     { opacity: 0; }
 
-// Generic fade
 .fade-enter-active, .fade-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-// Slide-in (drawers / action bars)
 .bz-slide-up-enter-active { transition: opacity var(--bz-dur) var(--bz-ease-out), transform var(--bz-dur) var(--bz-ease-out); }
 .bz-slide-up-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease), transform var(--bz-dur-fast) var(--bz-ease); }
 .bz-slide-up-enter-from   { opacity: 0; transform: translateY(16px); }
 .bz-slide-up-leave-to     { opacity: 0; transform: translateY(8px); }
 
-// Skeleton shimmer
+// Staggered entrance for grids/lists (apply .bz-rise to items).
+@keyframes bz-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bz-rise { animation: bz-rise var(--bz-dur-slow) var(--bz-ease-out) both; }
+
+// ──────────────────────────────────────────────────────────────
+//  Skeleton shimmer
+// ──────────────────────────────────────────────────────────────
 @keyframes bz-shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0%   { background-position: -480px 0; }
+  100% { background-position: 480px 0; }
 }
 .bz-skeleton {
-  background: linear-gradient(90deg, var(--bz-surface-3) 0%, color-mix(in srgb, var(--bz-surface-3) 70%, white) 50%, var(--bz-surface-3) 100%);
-  background-size: 800px 100%;
+  background: linear-gradient(90deg,
+    var(--bz-surface-3) 0%,
+    color-mix(in srgb, var(--bz-surface-3) 60%, white) 50%,
+    var(--bz-surface-3) 100%);
+  background-size: 960px 100%;
   animation: bz-shimmer 1.4s linear infinite;
   border-radius: var(--bz-radius-sm);
 }
+.v-theme--dark .bz-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 100%);
+  background-size: 960px 100%;
+}
 
-// v-data-table polish
-.v-data-table .v-data-table__td { font-size: 13px; }
-.v-data-table .v-data-table__th { font-size: 11.5px !important; font-weight: 700 !important; letter-spacing: 0.4px; text-transform: uppercase; color: var(--bz-text-3) !important; }
+// ──────────────────────────────────────────────────────────────
+//  Data table — comfortable by default (UX research applied)
+// ──────────────────────────────────────────────────────────────
+.v-data-table {
+  background: transparent !important;
+}
+.v-data-table .v-data-table__td {
+  font-size: 13.5px;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid var(--bz-border) !important;
+}
+.v-data-table .v-data-table__th {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--bz-text-3) !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--bz-border-strong) !important;
+}
+// Sticky glass header
+.v-data-table .v-table__wrapper > table > thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.v-data-table tbody tr { transition: background var(--bz-dur-fast) var(--bz-ease); }
+.v-data-table tbody tr:hover > td { background: var(--bz-primary-soft); }
 
-// Button press microinteraction
-.v-btn { transition: transform var(--bz-dur-fast) var(--bz-ease) !important; }
+// ──────────────────────────────────────────────────────────────
+//  Buttons / fields polish
+// ──────────────────────────────────────────────────────────────
+.v-btn { transition: transform var(--bz-dur-fast) var(--bz-ease), box-shadow var(--bz-dur) var(--bz-ease) !important; }
 .v-btn:active { transform: scale(0.97); }
+.v-btn--variant-flat.bg-primary,
+.v-btn--variant-flat.text-primary,
+.v-btn.bg-primary { box-shadow: var(--bz-glow-soft); }
 
-// Soft focus rings
 .v-field--focused .v-field__outline { box-shadow: var(--bz-shadow-glow); border-radius: var(--bz-radius-md); }
 
-// Scrollbars
+// ──────────────────────────────────────────────────────────────
+//  Scrollbars
+// ──────────────────────────────────────────────────────────────
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--bz-border-strong); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--bz-text-3); }
@@ -173,107 +341,41 @@ body {
 .leaflet-pane, .leaflet-control { z-index: 1 !important; }
 .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
 
-// ──────────────────────────────────────────────────────────
-// Responsive / mobile rules
-// ──────────────────────────────────────────────────────────
-
-// Tables: enable horizontal scroll on small screens so columns aren't crushed
+// ──────────────────────────────────────────────────────────────
+//  Responsive
+// ──────────────────────────────────────────────────────────────
 .v-data-table {
-  .v-table__wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .v-table__wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
-
-// Make any v-card that contains a table allow horizontal scroll
-.bz-card .v-data-table,
-.v-card .v-data-table {
-  max-width: 100%;
-}
+.bz-card .v-data-table, .v-card .v-data-table { max-width: 100%; }
 
 @media (max-width: 960px) {
-  .page-title { font-size: 19px; letter-spacing: -0.4px; }
+  .page-title { font-size: 20px; letter-spacing: -0.4px; }
   .page-subtitle { font-size: 12px; }
-
-  // Data table rows: a bit smaller text
   .v-data-table .v-data-table__td,
-  .v-data-table .v-data-table__th {
-    font-size: 12.5px !important;
-    padding: 0 10px !important;
-  }
-
-  // Make dialogs use viewport width nicely
+  .v-data-table .v-data-table__th { font-size: 12.5px !important; padding-left: 10px !important; padding-right: 10px !important; }
   .v-overlay__content > .v-card,
-  .v-dialog > .v-overlay__content {
-    max-width: calc(100vw - 24px) !important;
-  }
-
-  // Filter bar children: full width, stack
-  .bz-filterbar-stack > * {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  // Reduce v-row negative margin on tiny screens
-  .v-row {
-    margin-left: -6px;
-    margin-right: -6px;
-  }
-  .v-col, .v-row > [class^="v-col"] {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-
-  // Page-level cards: tighter padding
+  .v-dialog > .v-overlay__content { max-width: calc(100vw - 24px) !important; }
+  .bz-filterbar-stack > * { width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+  .v-row { margin-left: -6px; margin-right: -6px; }
+  .v-col, .v-row > [class^="v-col"] { padding-left: 6px; padding-right: 6px; }
   .v-card.pa-5 { padding: 16px !important; }
   .v-card.pa-6 { padding: 16px !important; }
   .v-card.pa-4 { padding: 12px !important; }
-
-  // Header buttons can wrap
-  .bz-page-header-actions {
-    flex-wrap: wrap;
-  }
+  .bz-page-header-actions { flex-wrap: wrap; }
 }
 
 @media (max-width: 600px) {
-  .page-title { font-size: 18px; }
-
-  // Dialogs effectively full-screen on phone
-  .v-dialog > .v-overlay__content {
-    margin: 12px !important;
-    max-width: calc(100vw - 24px) !important;
-  }
-
-  // Pagination shrinks
+  .page-title { font-size: 19px; }
+  .v-dialog > .v-overlay__content { margin: 12px !important; max-width: calc(100vw - 24px) !important; }
   .v-pagination__list { gap: 2px; }
   .v-pagination .v-btn { --v-btn-height: 32px !important; min-width: 32px !important; }
-
-  // Avoid massive bottom-sheet menus
-  .v-menu > .v-overlay__content {
-    max-width: calc(100vw - 16px) !important;
-  }
-
-  // Stat card numbers a touch smaller
   .stat-card .num { font-size: 22px !important; }
-
-  // Tabs scroll horizontally already, just keep label compact
   .v-tab { font-size: 12.5px !important; }
-
-  // Vuetify form inputs: smaller min height
   .v-field { font-size: 14px; }
-
-  // Buttons w/ long labels: don't overflow
   .v-btn { padding-left: 12px !important; padding-right: 12px !important; }
   .v-btn--icon { padding: 0 !important; }
 }
 
-// Always: prevent horizontal page scroll caused by leaky widths
-html, body {
-  overflow-x: hidden;
-}
-
-// Containers should not exceed viewport
-.v-main, .v-application {
-  max-width: 100%;
-}
+html, body { overflow-x: hidden; }
+.v-main, .v-application { max-width: 100%; }

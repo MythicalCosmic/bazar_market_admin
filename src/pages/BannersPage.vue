@@ -7,20 +7,12 @@
     </BzPageHeader>
 
     <!-- Stats -->
-    <v-row dense class="mb-2">
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Jami" :value="stats.total" icon="mdi-image-multiple-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Hozir ko'rinmoqda" :value="stats.showing" icon="mdi-eye-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Muddati tugagan" :value="stats.expired" icon="mdi-clock-alert-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="statsLoading" />
-      </v-col>
-    </v-row>
+    <div class="bz-kpi-rail">
+      <BzKpiTile label="Jami" :value="stats.total" icon="mdi-image-multiple-outline" color="#6366F1" bg="rgba(99,102,241,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#10B981" bg="rgba(16,185,129,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Hozir ko'rinmoqda" :value="stats.showing" icon="mdi-eye-outline" color="#06B6D4" bg="rgba(6,182,212,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Muddati tugagan" :value="stats.expired" icon="mdi-clock-alert-outline" color="#F43F5E" bg="rgba(244,63,94,0.10)" :loading="statsLoading" />
+    </div>
 
     <BzPageLoader v-if="loading" />
     <BzEmptyState v-else-if="!banners.length" icon="mdi-image-off-outline" title="Bannerlar yo'q">
@@ -102,7 +94,7 @@ import { bannersApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
-import BzStatCard   from '@/components/common/BzStatCard.vue'
+import BzKpiTile    from '@/components/common/BzKpiTile.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'

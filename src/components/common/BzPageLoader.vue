@@ -20,8 +20,8 @@ defineProps({
   align-items: center;
   justify-content: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, #16A34A, #22C55E);
-  box-shadow: 0 6px 20px rgba(22,163,74,0.32);
+  background: linear-gradient(135deg, var(--bz-primary-strong), var(--bz-primary));
+  box-shadow: var(--bz-glow-soft), inset 0 1px 0 rgba(255,255,255,0.35);
   animation: bz-bounce 1.2s var(--bz-ease-spring) infinite;
 }
 @keyframes bz-bounce {

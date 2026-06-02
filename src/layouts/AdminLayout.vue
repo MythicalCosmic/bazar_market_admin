@@ -7,22 +7,20 @@
       :rail="!mobile && rail"
       :permanent="!mobile"
       :temporary="mobile"
-      color="surface"
-      border="end"
-      :width="248"
+      color="transparent"
+      :border="0"
+      :width="268"
+      class="bz-drawer"
     >
       <!-- Brand -->
-      <div class="d-flex align-center px-4" style="height:60px;border-bottom:1px solid var(--bz-border);gap:10px">
-        <div
-          class="d-flex align-center justify-center flex-shrink-0"
-          style="width:38px;height:38px;background:linear-gradient(135deg,#16A34A,#22C55E);border-radius:12px;box-shadow:0 4px 14px rgba(22,163,74,0.32)"
-        >
+      <div class="bz-brand d-flex align-center px-4">
+        <div class="bz-brand-mark d-flex align-center justify-center flex-shrink-0">
           <v-icon color="white" size="22">mdi-storefront</v-icon>
         </div>
         <template v-if="!rail || mobile">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:800;font-size:15px;line-height:1.1">Bazar Market</div>
-            <div class="section-label" style="margin-top:2px">Admin Panel</div>
+          <div style="flex:1;min-width:0" class="ml-1">
+            <div style="font-weight:800;font-size:15px;line-height:1.1;letter-spacing:-0.3px">Bazar Market</div>
+            <div class="section-label" style="margin-top:3px">Admin Panel</div>
           </div>
           <v-btn v-if="!mobile" icon variant="text" size="x-small" @click="rail = true">
             <v-icon size="16">mdi-chevron-left</v-icon>
@@ -34,9 +32,9 @@
       </div>
 
       <!-- Nav -->
-      <v-list nav density="compact" class="px-2 pt-2">
+      <v-list nav density="compact" class="px-3 pt-2 bz-navlist">
         <template v-for="group in visibleGroups" :key="group.label || 'top'">
-          <div v-if="(!rail || mobile) && group.label" class="section-label px-3 pt-3 pb-1">{{ group.label }}</div>
+          <div v-if="(!rail || mobile) && group.label" class="section-label px-2 pt-4 pb-1">{{ group.label }}</div>
           <v-list-item
             v-for="item in group.items"
             :key="item.to"
@@ -58,13 +56,12 @@
 
       <!-- User footer -->
       <template #append>
-        <v-divider />
-        <div class="pa-2">
+        <div class="pa-3">
           <v-menu offset-y>
             <template #activator="{ props: activator }">
-              <v-list-item v-bind="activator" rounded="lg" class="px-2 py-2 cursor-pointer">
+              <v-list-item v-bind="activator" rounded="lg" class="bz-userchip px-2 py-2 cursor-pointer">
                 <template #prepend>
-                  <v-avatar size="36" color="primary" variant="tonal" class="mr-3">
+                  <v-avatar size="36" class="bz-avatar mr-3">
                     <span style="font-size:13px;font-weight:800">{{ initials }}</span>
                   </v-avatar>
                 </template>
@@ -103,9 +100,9 @@
     </v-btn>
 
     <!-- ── Main ────────────────────────────────────────────── -->
-    <v-main class="bz-main" style="background:var(--bz-surface-2)">
+    <v-main class="bz-main">
       <!-- Topbar -->
-      <div class="bz-topbar d-flex align-center">
+      <div class="bz-topbar bz-glass d-flex align-center">
         <!-- Mobile hamburger -->
         <v-btn
           v-if="mobile"
@@ -133,21 +130,21 @@
         <v-spacer />
 
         <div class="d-flex align-center ga-1">
-          <v-btn variant="tonal" size="small" rounded="lg" class="bz-search-btn" @click="palette.show()">
+          <v-btn variant="flat" size="small" rounded="lg" class="bz-search-btn" @click="palette.show()">
             <v-icon :start="!mobile" size="16">mdi-magnify</v-icon>
             <span class="hidden-sm-and-down">Qidirish</span>
             <kbd class="bz-kbd ml-2 hidden-sm-and-down">⌘K</kbd>
           </v-btn>
 
-          <v-btn icon variant="text" size="small" :title="isDark ? 'Yorug\' tema' : 'Qorong\'u tema'" @click="toggleTheme">
+          <v-btn icon variant="text" size="small" class="bz-icon-btn" :title="isDark ? 'Yorug\' tema' : 'Qorong\'u tema'" @click="toggleTheme">
             <v-icon size="20">{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
           </v-btn>
 
-          <v-btn icon variant="text" size="small" to="/orders?status=pending" title="Yangi buyurtmalar">
+          <v-btn icon variant="text" size="small" class="bz-icon-btn" to="/orders?status=pending" title="Yangi buyurtmalar">
             <v-icon size="20">mdi-bell-outline</v-icon>
           </v-btn>
 
-          <v-avatar size="34" color="primary" variant="tonal" class="ml-1 d-none d-sm-flex" style="cursor:pointer">
+          <v-avatar size="34" class="bz-avatar ml-1 d-none d-sm-flex" style="cursor:pointer">
             <span style="font-size:12px;font-weight:800">{{ initials }}</span>
           </v-avatar>
         </div>
@@ -227,9 +224,12 @@ const NAV = [
   ]},
 ]
 
+// While the current user / permissions are still loading after a refresh,
+// show the full nav so items don't pop in one group at a time.
+const permsReady = computed(() => !auth.isLoggedIn || !!auth.user)
 const visibleGroups = computed(() =>
   NAV
-    .map(g => ({ ...g, items: g.items.filter(i => auth.hasPerm(i.perm)) }))
+    .map(g => ({ ...g, items: g.items.filter(i => !permsReady.value || auth.hasPerm(i.perm)) }))
     .filter(g => g.items.length)
 )
 
@@ -287,28 +287,72 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ── Floating glass sidebar ────────────────────────────────── */
+/* Vertical inset + rounded right edge so the whole panel (incl. the
+   user-chip append slot) floats over the aurora. No horizontal margin —
+   that would overlap the main content, which Vuetify offsets by width. */
+.bz-drawer.v-navigation-drawer {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  height: calc(100dvh - 28px) !important;
+  max-height: calc(100dvh - 28px) !important;
+  background: var(--bz-glass-bg-strong) !important;
+  -webkit-backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
+  backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
+  border: 1px solid var(--bz-glass-border) !important;
+  border-left: 0 !important;
+  border-radius: 0 var(--bz-radius-xl) var(--bz-radius-xl) 0 !important;
+  box-shadow: var(--bz-shadow-lg), inset 0 1px 0 var(--bz-glass-highlight);
+  overflow: hidden;
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .bz-drawer.v-navigation-drawer { background: var(--bz-glass-bg-solid) !important; }
+}
+.bz-brand {
+  height: 60px;
+  gap: 10px;
+  border-bottom: 1px solid var(--bz-border);
+}
+.bz-brand-mark {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--bz-primary-strong), var(--bz-primary));
+  border-radius: 13px;
+  box-shadow: var(--bz-glow-soft), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.bz-navlist :deep(.v-list-item__prepend > .v-icon) { opacity: 0.9; }
+.bz-userchip {
+  border: 1px solid var(--bz-border);
+  background: var(--bz-glass-bg);
+  transition: border-color var(--bz-dur) var(--bz-ease), background var(--bz-dur) var(--bz-ease);
+}
+.bz-userchip:hover { border-color: var(--bz-primary-glow); }
+.bz-avatar {
+  background: linear-gradient(135deg, var(--bz-primary-soft), var(--bz-accent-soft)) !important;
+  color: var(--bz-primary-strong);
+  border: 1px solid var(--bz-primary-glow);
+}
+.v-theme--dark .bz-avatar { color: var(--bz-primary); }
+
+/* ── Main + glass topbar ───────────────────────────────────── */
 .bz-main {
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
+  background: transparent;
 }
 .bz-topbar {
-  height: 60px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--bz-border);
-  background: rgba(var(--v-theme-surface), 0.85);
-  backdrop-filter: blur(12px);
+  height: 58px;
+  margin: 14px 18px 0;
+  padding: 0 16px;
   position: sticky;
-  top: 0;
+  top: 14px;
   z-index: 9;
   gap: 4px;
+  border-radius: var(--bz-radius-lg);
 }
-.bz-page-content {
-  padding: 24px;
-}
-.bz-page-content--flush {
-  padding: 0;
-}
+.bz-page-content { padding: 18px 18px 24px; }
+.bz-page-content--flush { padding: 0; }
+
 .bz-crumbs {
   font-size: 13px;
   color: var(--bz-text-3);
@@ -324,22 +368,26 @@ onMounted(() => {
   text-overflow: ellipsis;
   overflow: hidden;
   max-width: 200px;
+  transition: color var(--bz-dur-fast) var(--bz-ease);
 }
-.bz-crumb--active {
-  color: var(--bz-text-1);
-  font-weight: 700;
-}
+.bz-crumb:hover { color: var(--bz-text-2); }
+.bz-crumb--active { color: var(--bz-text-1); font-weight: 700; }
+
 .bz-search-btn {
-  background: var(--bz-surface-2) !important;
+  background: var(--bz-glass-bg) !important;
   border: 1px solid var(--bz-border) !important;
   font-weight: 600;
   color: var(--bz-text-3) !important;
+  box-shadow: none !important;
+  transition: border-color var(--bz-dur) var(--bz-ease), color var(--bz-dur) var(--bz-ease);
 }
+.bz-search-btn:hover { border-color: var(--bz-primary-glow) !important; color: var(--bz-text-2) !important; }
+.bz-icon-btn { color: var(--bz-text-2); }
 .bz-kbd {
   display: inline-block;
   padding: 1px 6px;
   border: 1px solid var(--bz-border-strong);
-  border-radius: 4px;
+  border-radius: 5px;
   background: var(--bz-surface-1);
   font-size: 10.5px;
   font-family: ui-monospace, monospace;
@@ -347,26 +395,12 @@ onMounted(() => {
 }
 
 @media (max-width: 960px) {
-  .bz-topbar {
-    padding: 0 12px;
-    height: 56px;
-  }
-  .bz-page-content {
-    padding: 12px;
-  }
-  .bz-crumb {
-    max-width: 60vw;
-    font-size: 14px;
-  }
+  .bz-topbar { padding: 0 12px; height: 58px; }
+  .bz-page-content { padding: 14px; }
+  .bz-crumb { max-width: 60vw; font-size: 14px; }
 }
-
 @media (max-width: 600px) {
-  .bz-page-content {
-    padding: 10px;
-  }
-  .bz-search-btn {
-    min-width: 36px;
-    padding: 0 8px !important;
-  }
+  .bz-page-content { padding: 10px; }
+  .bz-search-btn { min-width: 36px; padding: 0 8px !important; }
 }
 </style>

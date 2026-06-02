@@ -413,8 +413,8 @@ function colorFor(s) { return ORDER_STATUS[s]?.color || 'grey' }
 function bgFor(s) {
   const c = ORDER_STATUS[s]?.color
   if (c === 'warning') return 'rgba(245,158,11,0.12)'
-  if (c === 'info')    return 'rgba(59,130,246,0.12)'
-  if (c === 'success') return 'rgba(22,163,74,0.12)'
+  if (c === 'info')    return 'rgba(99,102,241,0.12)'
+  if (c === 'success') return 'rgba(16,185,129,0.12)'
   if (c === 'error')   return 'rgba(239,68,68,0.12)'
   if (c === 'purple')  return 'rgba(139,92,246,0.14)'
   return 'rgba(148,163,184,0.14)'
@@ -693,8 +693,8 @@ onBeforeUnmount(() => {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #16A34A;
-  box-shadow: 0 4px 12px rgba(22,163,74,0.35);
+  background: #10B981;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.4);
   text-decoration: none;
   flex-shrink: 0;
   transition: transform 0.15s ease;
@@ -1059,10 +1059,10 @@ onBeforeUnmount(() => {
 }
 .courier-btn:active:not(:disabled) { transform: scale(0.96); }
 .courier-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.courier-btn-claim     { background: linear-gradient(135deg, #3B82F6, #2563EB); grid-column: 1 / -1; }
-.courier-btn-go        { background: linear-gradient(135deg, #8B5CF6, #7C3AED); grid-column: 1 / -1; }
-.courier-btn-delivered { background: linear-gradient(135deg, #16A34A, #15803D); grid-column: 1 / -1; }
-.courier-btn-completed { background: linear-gradient(135deg, #16A34A, #14532D); grid-column: 1 / -1; }
+.courier-btn-claim     { background: linear-gradient(135deg, #6366F1, #4F46E5); grid-column: 1 / -1; }
+.courier-btn-go        { background: linear-gradient(135deg, #A855F7, #7C3AED); grid-column: 1 / -1; }
+.courier-btn-delivered { background: linear-gradient(135deg, #10B981, #059669); grid-column: 1 / -1; }
+.courier-btn-completed { background: linear-gradient(135deg, #10B981, #047857); grid-column: 1 / -1; }
 .courier-btn-paid      { background: linear-gradient(135deg, #F59E0B, #D97706); }
 .courier-btn-cancel    { background: linear-gradient(135deg, #EF4444, #DC2626); }
 

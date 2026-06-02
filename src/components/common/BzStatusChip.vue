@@ -3,9 +3,10 @@
     :color="meta.color"
     variant="tonal"
     :size="size"
-    class="chip-sm"
+    class="chip-sm bz-status-chip"
   >
     <v-icon v-if="icon && meta.icon" start :size="11">{{ meta.icon }}</v-icon>
+    <span v-else class="bz-status-dot" />
     {{ meta.label }}
   </v-chip>
 </template>
@@ -32,3 +33,15 @@ const meta = computed(() => {
   return dict[props.status] || { label: props.status || '—', color: 'grey', icon: 'mdi-help' }
 })
 </script>
+
+<style scoped>
+.bz-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+</style>

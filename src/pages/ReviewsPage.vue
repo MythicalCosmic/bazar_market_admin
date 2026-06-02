@@ -3,12 +3,36 @@
     <BzPageHeader title="Sharhlar" :subtitle="total ? `${total} ta jami` : ''" />
 
     <!-- Stats -->
-    <v-row class="mb-4" dense>
-      <v-col cols="6" sm="3"><v-card rounded="xl" class="bz-card pa-4"><div class="section-label">Jami</div><div class="num" style="font-weight:800;font-size:22px">{{ stats.total ?? '—' }}</div></v-card></v-col>
-      <v-col cols="6" sm="3"><v-card rounded="xl" class="bz-card pa-4"><div class="section-label">O'rtacha</div><div class="d-flex align-center ga-1"><span class="num" style="font-weight:800;font-size:22px">{{ stats.average_rating?.toFixed?.(1) ?? '—' }}</span><v-icon color="warning" size="18">mdi-star</v-icon></div></v-card></v-col>
-      <v-col cols="6" sm="3"><v-card rounded="xl" class="bz-card pa-4" style="background:rgba(245,158,11,0.06)"><div class="section-label" style="color:var(--bz-warn)">Kutilmoqda</div><div class="num" style="font-weight:800;font-size:22px;color:var(--bz-warn)">{{ stats.pending ?? '—' }}</div></v-card></v-col>
-      <v-col cols="6" sm="3"><v-card rounded="xl" class="bz-card pa-4" style="background:rgba(22,163,74,0.06)"><div class="section-label" style="color:var(--bz-primary)">Tasdiqlangan</div><div class="num" style="font-weight:800;font-size:22px;color:var(--bz-primary)">{{ stats.approved ?? '—' }}</div></v-card></v-col>
-    </v-row>
+    <div class="bz-kpi-rail mb-4">
+      <BzKpiTile
+        label="Jami"
+        :value="stats.total ?? '—'"
+        icon="mdi-comment-multiple-outline"
+        color="#6366F1"
+        bg="rgba(99,102,241,0.12)"
+      />
+      <BzKpiTile
+        label="O'rtacha"
+        :value="stats.average_rating?.toFixed?.(1) ?? '—'"
+        icon="mdi-star"
+        color="#F59E0B"
+        bg="rgba(245,158,11,0.12)"
+      />
+      <BzKpiTile
+        label="Kutilmoqda"
+        :value="stats.pending ?? '—'"
+        icon="mdi-clock-outline"
+        color="#F59E0B"
+        bg="rgba(245,158,11,0.12)"
+      />
+      <BzKpiTile
+        label="Tasdiqlangan"
+        :value="stats.approved ?? '—'"
+        icon="mdi-check-circle-outline"
+        color="#10B981"
+        bg="rgba(16,185,129,0.12)"
+      />
+    </div>
 
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Sharh, mijoz, raqam…" @search="onSearch">
       <v-select v-model="f.moderation_status" :items="modStatuses" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:160px" @update:model-value="load" />
@@ -99,6 +123,7 @@ import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzStatusChip from '@/components/common/BzStatusChip.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
+import BzKpiTile from '@/components/common/BzKpiTile.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()

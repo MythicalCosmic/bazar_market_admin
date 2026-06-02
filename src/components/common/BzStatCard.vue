@@ -19,10 +19,10 @@
       </div>
 
       <div
-        class="d-flex align-center justify-center flex-shrink-0"
-        :style="`width:46px;height:46px;border-radius:14px;background:${bgColor};color:${color}`"
+        class="d-flex align-center justify-center flex-shrink-0 bz-stat-icon"
+        :style="`width:48px;height:48px;background:${bgColor};color:${color};box-shadow:inset 0 0 0 1px ${bgColor}, inset 0 1px 0 rgba(255,255,255,0.25)`"
       >
-        <v-icon :color="color" size="22">{{ icon }}</v-icon>
+        <v-icon :color="color" size="23">{{ icon }}</v-icon>
       </div>
     </div>
 
@@ -43,8 +43,8 @@ const props = defineProps({
   sub:     { type: String, default: '' },
   delta:   { type: Number, default: null },
   icon:    { type: String, default: 'mdi-chart-line' },
-  color:   { type: String, default: '#16A34A' },
-  bgColor: { type: String, default: 'rgba(22,163,74,0.10)' },
+  color:   { type: String, default: '#10B981' },
+  bgColor: { type: String, default: 'rgba(16,185,129,0.10)' },
   series:  { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   height:  { type: [Number, String], default: 132 },
@@ -88,3 +88,7 @@ const displayValue = computed(() => {
   return Math.round(n).toString()
 })
 </script>
+
+<style scoped>
+.bz-stat-icon { border-radius: 14px; }
+</style>

@@ -8,20 +8,12 @@
     </BzPageHeader>
 
     <!-- Stats -->
-    <v-row dense class="mb-2">
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Jami kuponlar" :value="stats.total" icon="mdi-ticket-percent-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Ishlatilgan" :value="stats.totalUses" icon="mdi-counter" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" sub="marta" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Chegirma summasi" :value="stats.discountGiven" suffix="UZS" icon="mdi-cash-minus" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" :format="v => fmt.compact(v)" />
-      </v-col>
-    </v-row>
+    <div class="bz-kpi-rail">
+      <BzKpiTile label="Jami kuponlar" :value="stats.total" icon="mdi-ticket-percent-outline" color="#6366F1" bg="rgba(99,102,241,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#10B981" bg="rgba(16,185,129,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Ishlatilgan" :value="stats.totalUses" icon="mdi-counter" color="#A855F7" bg="rgba(168,85,247,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Chegirma summasi" :value="stats.discountGiven" suffix="UZS" icon="mdi-cash-minus" color="#F59E0B" bg="rgba(245,158,11,0.10)" :loading="statsLoading" :format="v => fmt.compact(v)" />
+    </div>
 
     <v-card rounded="xl" class="bz-card pa-3">
       <BzPageLoader v-if="loading" />
@@ -105,7 +97,7 @@ import { couponsApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
-import BzStatCard   from '@/components/common/BzStatCard.vue'
+import BzKpiTile    from '@/components/common/BzKpiTile.vue'
 import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'

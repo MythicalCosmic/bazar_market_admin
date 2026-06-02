@@ -20,8 +20,8 @@
               @click="selectedId = z.id"
             >
               <template #prepend>
-                <div class="d-flex align-center justify-center mr-2 flex-shrink-0" style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.10)">
-                  <v-icon color="info" size="18">mdi-map-marker-radius</v-icon>
+                <div class="d-flex align-center justify-center mr-2 flex-shrink-0" style="width:36px;height:36px;border-radius:10px;background:var(--bz-primary-soft)">
+                  <v-icon color="primary" size="18">mdi-map-marker-radius</v-icon>
                 </div>
               </template>
               <v-list-item-title style="font-weight:700;font-size:13.5px">{{ z.name }}</v-list-item-title>

@@ -440,7 +440,7 @@ onMounted(async () => {
 .bz-profile-header {
   position: relative;
   height: 100px;
-  background: linear-gradient(135deg, #16A34A 0%, #22C55E 50%, #3B82F6 100%);
+  background: linear-gradient(135deg, var(--bz-primary-strong) 0%, var(--bz-primary) 50%, var(--bz-accent) 100%);
   display: flex;
   align-items: flex-end;
   justify-content: center;

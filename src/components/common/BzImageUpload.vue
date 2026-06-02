@@ -278,8 +278,8 @@ defineExpose({ openPicker })
 }
 .bz-img-option:hover { border-color: var(--bz-primary); }
 .bz-img-option-selected {
-  border-color: #16A34A !important;
-  box-shadow: 0 0 0 2px rgba(22,163,74,0.25);
+  border-color: var(--bz-primary) !important;
+  box-shadow: var(--bz-shadow-glow);
 }
 .bz-img-preview {
   width: 100%;

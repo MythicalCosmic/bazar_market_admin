@@ -8,26 +8,14 @@
     </BzPageHeader>
 
     <!-- Stat cards -->
-    <v-row dense class="mb-2">
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Jami" :value="pStats.total" icon="mdi-cube-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="pStatsLoading" />
-      </v-col>
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Faol" :value="pStats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="pStatsLoading" />
-      </v-col>
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Omborda" :value="pStats.inStock" icon="mdi-warehouse" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="pStatsLoading" />
-      </v-col>
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Kam qolgan" :value="pStats.lowStock" icon="mdi-alert-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="pStatsLoading" />
-      </v-col>
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Ombor qiymati" :value="pStats.totalValue" suffix="UZS" icon="mdi-cash-multiple" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="pStatsLoading" :format="v => fmt.compact(v)" />
-      </v-col>
-      <v-col cols="6" sm="4" lg="2">
-        <BzStatCard title="Chegirmada" :value="pStats.discounted" icon="mdi-sale" color="#EC4899" bg-color="rgba(236,72,153,0.10)" :loading="pStatsLoading" />
-      </v-col>
-    </v-row>
+    <div class="bz-kpi-rail">
+      <BzKpiTile label="Jami" :value="pStats.total" icon="mdi-cube-outline" color="#6366F1" bg="rgba(99,102,241,0.12)" :loading="pStatsLoading" />
+      <BzKpiTile label="Faol" :value="pStats.active" icon="mdi-check-circle-outline" color="#10B981" bg="rgba(16,185,129,0.12)" :loading="pStatsLoading" />
+      <BzKpiTile label="Omborda" :value="pStats.inStock" icon="mdi-warehouse" color="#A855F7" bg="rgba(168,85,247,0.12)" :loading="pStatsLoading" />
+      <BzKpiTile label="Kam qolgan" :value="pStats.lowStock" icon="mdi-alert-outline" color="#F43F5E" bg="rgba(244,63,94,0.12)" :loading="pStatsLoading" />
+      <BzKpiTile label="Ombor qiymati" :value="pStats.totalValue" :format="v => fmt.compact(v)" suffix="UZS" icon="mdi-cash-multiple" color="#F59E0B" bg="rgba(245,158,11,0.12)" :loading="pStatsLoading" />
+      <BzKpiTile label="Chegirmada" :value="pStats.discounted" icon="mdi-sale" color="#06B6D4" bg="rgba(6,182,212,0.12)" :loading="pStatsLoading" />
+    </div>
 
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Mahsulot nomi…" @search="onSearch">
       <v-select v-model="f.category_id" :items="categories" item-title="name" item-value="id" placeholder="Kategoriya" clearable hide-details density="comfortable" class="bz-flt bz-flt-wide" @update:model-value="load" />
@@ -203,7 +191,7 @@
         <!-- Header -->
         <div class="bz-dialog-header">
           <div class="d-flex align-center ga-3">
-            <div class="bz-dialog-icon" :style="{ background: editItem ? 'var(--bz-primary-soft)' : 'rgba(34,197,94,0.12)' }">
+            <div class="bz-dialog-icon" :style="{ background: editItem ? 'var(--bz-primary-soft)' : 'var(--bz-primary-soft)' }">
               <v-icon :color="editItem ? 'primary' : 'success'" size="22">{{ editItem ? 'mdi-pencil-outline' : 'mdi-plus' }}</v-icon>
             </div>
             <div>
@@ -479,7 +467,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { productsApi, categoriesApi, discountsApi, statsApi } from '@/api'
 import { useFormat } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
-import BzStatCard    from '@/components/common/BzStatCard.vue'
+import BzKpiTile     from '@/components/common/BzKpiTile.vue'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
 import BzPageLoader  from '@/components/common/BzPageLoader.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'

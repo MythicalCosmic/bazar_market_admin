@@ -2,6 +2,42 @@
   <div>
     <BzPageHeader title="Sozlamalar" />
 
+    <!-- Appearance / interface -->
+    <v-card rounded="xl" class="bz-card pa-5 mb-4">
+      <div class="d-flex align-center ga-3 mb-4">
+        <div class="d-flex align-center justify-center flex-shrink-0" style="width:46px;height:46px;border-radius:14px;background:var(--bz-accent-soft)">
+          <v-icon color="secondary" size="22">mdi-palette-outline</v-icon>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14.5px">Ko'rinish</div>
+          <div style="font-size:12px;color:var(--bz-text-3)">Mavzu va vizual effektlar</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-center pa-3 mb-2" style="border:1px solid var(--bz-border);border-radius:12px;flex-wrap:wrap;gap:12px">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:13.5px">Mavzu</div>
+          <div style="font-size:11.5px;color:var(--bz-text-3)">Yorug' yoki qorong'u rejim</div>
+        </div>
+        <v-btn-toggle
+          :model-value="isDark ? 'dark' : 'light'"
+          mandatory density="comfortable" color="primary" variant="outlined" rounded="lg"
+          @update:model-value="v => { if ((v === 'dark') !== isDark) toggleTheme() }"
+        >
+          <v-btn value="light" size="small"><v-icon start size="16">mdi-weather-sunny</v-icon>Yorug'</v-btn>
+          <v-btn value="dark"  size="small"><v-icon start size="16">mdi-weather-night</v-icon>Qorong'u</v-btn>
+        </v-btn-toggle>
+      </div>
+
+      <div class="d-flex align-center pa-3" style="border:1px solid var(--bz-border);border-radius:12px;flex-wrap:wrap;gap:12px">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:13.5px">Effektlarni kamaytirish</div>
+          <div style="font-size:11.5px;color:var(--bz-text-3)">Shisha xiralashuvi va animatsiyalarni o'chiradi (eski qurilmalar uchun tezroq)</div>
+        </div>
+        <v-switch :model-value="lite" color="primary" hide-details inset @update:model-value="toggleLite" />
+      </div>
+    </v-card>
+
     <!-- Min order quick widget -->
     <v-card rounded="xl" class="bz-card pa-5 mb-4">
       <div class="d-flex align-center ga-3" style="flex-wrap:wrap">
@@ -91,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import { settingsApi, ordersApi } from '@/api'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
@@ -99,6 +135,13 @@ import BzPageLoader from '@/components/common/BzPageLoader.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 
 const snack = useSnackStore()
+
+// Appearance controls (provided by App.vue)
+const theme      = inject('theme')
+const toggleTheme = inject('toggleTheme')
+const lite       = inject('lite')
+const toggleLite = inject('toggleLite')
+const isDark     = computed(() => theme?.value === 'dark')
 
 const settings = ref([])
 const loading  = ref(false)

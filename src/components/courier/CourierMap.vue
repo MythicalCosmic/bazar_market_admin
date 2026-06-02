@@ -163,8 +163,8 @@ function updateMeMarker() {
   if (myPos.value.acc) {
     if (!meAccuracyCircle) {
       meAccuracyCircle = new ymaps.Circle([ll, myPos.value.acc], {}, {
-        fillColor: '#3B82F61F',
-        strokeColor: '#3B82F6',
+        fillColor: '#6366F11F',
+        strokeColor: '#6366F1',
         strokeOpacity: 0.5,
         strokeWidth: 1,
         interactivityModel: 'default#transparent',
@@ -213,7 +213,7 @@ function refreshRoute() {
     boundsAutoApply: false,
     wayPointVisible: false,
     pinVisible: false,
-    routeActiveStrokeColor: '#16A34A',
+    routeActiveStrokeColor: '#10B981',
     routeActiveStrokeWidth: 5,
   })
 
@@ -238,7 +238,7 @@ function drawStraightFallback(a, b) {
   routeMeters.value = null
   routeSeconds.value = null
   routeLine = new ymaps.Polyline([[a.lat, a.lng], [b.lat, b.lng]], {}, {
-    strokeColor: '#3B82F6', strokeWidth: 4, strokeOpacity: 0.6, strokeStyle: 'dash',
+    strokeColor: '#6366F1', strokeWidth: 4, strokeOpacity: 0.6, strokeStyle: 'dash',
   })
   map.geoObjects.add(routeLine)
   const straightM = haversine(a, b)
@@ -419,16 +419,16 @@ defineExpose({ recenterMe, fitBoth })
   margin: auto;
   width: 16px;
   height: 16px;
-  background: #3B82F6;
+  background: #6366F1;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(59,130,246,0.5);
+  box-shadow: 0 2px 6px rgba(99,102,241,0.5);
 }
 .courier-me-pulse {
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  background: rgba(59,130,246,0.35);
+  background: rgba(99,102,241,0.35);
   animation: courier-pulse 1.6s ease-out infinite;
 }
 @keyframes courier-pulse {

@@ -2,75 +2,41 @@
   <div>
     <BzPageHeader title="Mijozlar" :subtitle="total ? `${total} ta ro'yxatdan o'tgan` : ''" />
 
-    <!-- Stats + chart row -->
-    <v-row class="mb-4" dense>
-      <v-col cols="12" sm="6" lg="3">
-        <v-card rounded="xl" class="stat-card pa-5" height="130">
-          <div class="d-flex align-start justify-space-between">
-            <div>
-              <div class="section-label" style="margin-bottom:8px">Jami mijozlar</div>
-              <div v-if="statsLoading && !total" class="bz-skeleton" style="width:80px;height:32px" />
-              <div v-else class="num" style="font-weight:800;font-size:32px;letter-spacing:-1px">{{ locNum(kpi.total) }}</div>
-            </div>
-            <div class="d-flex align-center justify-center" style="width:46px;height:46px;border-radius:14px;background:rgba(22,163,74,0.10)">
-              <v-icon color="primary" size="24">mdi-account-group</v-icon>
-            </div>
-          </div>
-          <div style="font-size:11.5px;color:var(--bz-text-3);margin-top:6px">
-            <v-icon size="12" color="success">mdi-circle</v-icon>
-            {{ locNum(kpi.active) }} faol
-            <span style="margin-left:8px"><v-icon size="12" color="error">mdi-circle</v-icon> {{ locNum((kpi.total || 0) - (kpi.active || 0)) }} bloklangan</span>
-          </div>
-        </v-card>
-      </v-col>
-      <v-col cols="6" sm="3" lg="2">
-        <v-card rounded="xl" class="stat-card pa-5" height="130">
-          <div class="section-label" style="margin-bottom:8px">Yangi</div>
-          <div v-if="statsLoading && !total" class="bz-skeleton" style="width:60px;height:32px" />
-          <div v-else class="num" style="font-weight:800;font-size:32px;letter-spacing:-1px;color:#3B82F6">{{ locNum(kpi.newCount) }}</div>
-          <div style="font-size:11.5px;color:var(--bz-text-3);margin-top:6px">Oxirgi 30 kunda</div>
-        </v-card>
-      </v-col>
-      <v-col cols="6" sm="3" lg="2">
-        <v-card rounded="xl" class="stat-card pa-5" height="130">
-          <div class="section-label" style="margin-bottom:8px">Telegram</div>
-          <div v-if="statsLoading && !total" class="bz-skeleton" style="width:60px;height:32px" />
-          <div v-else>
-            <div class="d-flex align-center ga-2">
-              <v-icon size="22" color="info">mdi-telegram</v-icon>
-              <span class="num" style="font-weight:800;font-size:32px;letter-spacing:-1px">{{ locNum(kpi.telegram) }}</span>
-            </div>
-            <div v-if="kpi.total" style="font-size:11.5px;color:var(--bz-text-3);margin-top:6px">
-              {{ Math.round((kpi.telegram || 0) / kpi.total * 100) }}% ulangan
-            </div>
-          </div>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" lg="3">
-        <v-card rounded="xl" class="stat-card pa-5" height="130">
-          <div class="section-label" style="margin-bottom:8px">Faollik</div>
-          <div class="d-flex align-center ga-3 mb-2">
-            <div>
-              <span class="num" style="font-weight:800;font-size:28px;color:var(--bz-primary)">{{ activePct }}</span><span style="font-size:14px;font-weight:700;color:var(--bz-primary)">%</span>
-            </div>
-            <div style="font-size:12px;color:var(--bz-text-3);font-weight:600;line-height:1.4">
-              faol<br>mijozlar
-            </div>
-          </div>
-          <v-progress-linear
-            :model-value="activePct"
-            color="success"
-            bg-color="error"
-            height="6"
-            rounded
-          />
-          <div class="d-flex justify-space-between mt-1" style="font-size:10.5px;color:var(--bz-text-3);font-weight:600">
-            <span><v-icon size="8" color="success">mdi-circle</v-icon> {{ locNum(kpi.active) }} faol</span>
-            <span><v-icon size="8" color="error">mdi-circle</v-icon> {{ locNum((kpi.total || 0) - (kpi.active || 0)) }} blok</span>
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
+    <!-- Stats -->
+    <div class="bz-kpi-rail mb-4">
+      <BzKpiTile
+        label="Jami mijozlar"
+        :value="locNum(kpi.total)"
+        icon="mdi-account-group"
+        color="#6366F1"
+        bg="rgba(99,102,241,0.12)"
+        :loading="statsLoading && !total"
+      />
+      <BzKpiTile
+        label="Yangi"
+        :value="locNum(kpi.newCount)"
+        icon="mdi-account-plus"
+        color="#06B6D4"
+        bg="rgba(6,182,212,0.12)"
+        :loading="statsLoading && !total"
+      />
+      <BzKpiTile
+        label="Telegram"
+        :value="locNum(kpi.telegram)"
+        icon="mdi-telegram"
+        color="#A855F7"
+        bg="rgba(168,85,247,0.12)"
+        :loading="statsLoading && !total"
+      />
+      <BzKpiTile
+        label="Faollik"
+        :value="activePct"
+        suffix="%"
+        icon="mdi-pulse"
+        color="#10B981"
+        bg="rgba(16,185,129,0.12)"
+      />
+    </div>
 
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Ism, telefon, telegram…" @search="onSearch">
       <v-select v-model="f.is_active" :items="activeOptions" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:170px" @update:model-value="load" />
@@ -180,6 +146,7 @@ import { useFormat } from '@/composables/useFormat'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
 import BzFilterBar  from '@/components/common/BzFilterBar.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
+import BzKpiTile    from '@/components/common/BzKpiTile.vue'
 
 const fmt    = useFormat()
 const router = useRouter()

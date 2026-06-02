@@ -57,71 +57,60 @@
     </transition>
 
     <!-- Table -->
-    <v-card rounded="xl" class="bz-card">
-      <v-data-table
-        v-model="selected"
-        :headers="headers"
-        :items="orders"
-        :loading="loading"
-        item-value="id"
-        show-select
-        hide-default-footer
-        :items-per-page="f.per_page"
-      >
-        <template #item.order_number="{ item }">
-          <router-link
-            :to="`/orders/${item.id}`"
-            class="bz-order-num"
-            :title="item.order_number"
-          >#{{ item.order_number }}</router-link>
-        </template>
+    <BzDataTable
+      v-model="selected"
+      v-model:page="f.page"
+      v-model:per-page="f.per_page"
+      :headers="headers"
+      :items="orders"
+      :loading="loading"
+      :total="total"
+      item-value="id"
+      show-select
+      empty-icon="mdi-package-variant-closed"
+      empty-title="Buyurtmalar topilmadi"
+      @update:page="load"
+      @update:per-page="load"
+    >
+      <template #item.order_number="{ item }">
+        <router-link
+          :to="`/orders/${item.id}`"
+          class="bz-order-num"
+          :title="item.order_number"
+        >#{{ item.order_number }}</router-link>
+      </template>
 
-        <template #item.customer="{ item }">
-          <div class="bz-customer-cell">
-            <div style="font-weight:700;font-size:13px;line-height:1.3">{{ item.user?.first_name || item.customer_name || '—' }} {{ item.user?.last_name || '' }}</div>
-            <div style="font-size:11.5px;color:var(--bz-text-3);line-height:1.2;margin-top:2px">{{ item.user?.phone || item.customer_phone || '' }}</div>
-          </div>
-        </template>
+      <template #item.customer="{ item }">
+        <div class="bz-customer-cell">
+          <div style="font-weight:700;font-size:13px;line-height:1.3">{{ item.user?.first_name || item.customer_name || '—' }} {{ item.user?.last_name || '' }}</div>
+          <div style="font-size:11.5px;color:var(--bz-text-3);line-height:1.2;margin-top:2px">{{ item.user?.phone || item.customer_phone || '' }}</div>
+        </div>
+      </template>
 
-        <template #item.status="{ item }">
-          <BzStatusChip :status="item.status" :icon="true" />
-        </template>
+      <template #item.status="{ item }">
+        <BzStatusChip :status="item.status" :icon="true" />
+      </template>
 
-        <template #item.payment_status="{ item }">
-          <BzStatusChip :status="item.payment_status" type="payment" />
-        </template>
+      <template #item.payment_status="{ item }">
+        <BzStatusChip :status="item.payment_status" type="payment" />
+      </template>
 
-        <template #item.total="{ item }">
-          <span class="num font-weight-bold" style="font-size:13px">
-            {{ fmt.price(item.total || item.total_price) }}
-          </span>
-        </template>
+      <template #item.total="{ item }">
+        <span class="num font-weight-bold" style="font-size:13px">
+          {{ fmt.price(item.total || item.total_price) }}
+        </span>
+      </template>
 
-        <template #item.created_at="{ item }">
-          <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.relativeTime(item.created_at) }}</span>
-        </template>
+      <template #item.created_at="{ item }">
+        <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.relativeTime(item.created_at) }}</span>
+      </template>
 
-        <template #item.actions="{ item }">
-          <v-btn icon variant="text" size="small" :to="`/orders/${item.id}`">
-            <v-icon size="17">mdi-eye-outline</v-icon>
-          </v-btn>
-        </template>
-
-        <template #loading>
-          <BzSkeleton v-for="n in 5" :key="n" type="row" />
-        </template>
-        <template #no-data>
-          <BzEmptyState icon="mdi-package-variant-closed" title="Buyurtmalar topilmadi" />
-        </template>
-      </v-data-table>
-
-      <v-divider />
-      <div class="d-flex align-center justify-space-between px-4 py-3 ga-3" style="flex-wrap:wrap">
-        <div style="font-size:13px;color:var(--bz-text-3)">Jami: <b style="color:var(--bz-text-1)">{{ total }}</b> ta</div>
-        <v-pagination v-model="f.page" :length="pages" :total-visible="5" size="small" rounded="lg" @update:model-value="load" />
-        <v-select v-model="f.per_page" :items="[10,20,50,100]" hide-details density="compact" style="max-width:85px" @update:model-value="load" />
-      </div>
-    </v-card>
+      <template #item.actions="{ item }">
+        <v-btn icon variant="text" size="small" :to="`/orders/${item.id}`">
+          <v-icon size="17">mdi-eye-outline</v-icon>
+        </v-btn>
+      </template>
+    </BzDataTable>
   </div>
 </template>
 
@@ -134,8 +123,7 @@ import { useSnackStore } from '@/stores/snack'
 import BzPageHeader from '@/components/common/BzPageHeader.vue'
 import BzFilterBar  from '@/components/common/BzFilterBar.vue'
 import BzStatusChip from '@/components/common/BzStatusChip.vue'
-import BzEmptyState from '@/components/common/BzEmptyState.vue'
-import BzSkeleton   from '@/components/common/BzSkeleton.vue'
+import BzDataTable  from '@/components/common/BzDataTable.vue'
 
 const fmt   = useFormat()
 const snack = useSnackStore()

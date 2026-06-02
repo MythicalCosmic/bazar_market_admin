@@ -7,82 +7,74 @@
     </BzPageHeader>
 
     <!-- Stats -->
-    <v-row dense class="mb-2">
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Jami xodimlar" :value="stats.total" icon="mdi-account-group-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Adminlar" :value="stats.admins" icon="mdi-shield-account-outline" color="#EF4444" bg-color="rgba(239,68,68,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Menejerlar" :value="stats.managers" icon="mdi-account-tie-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Kuryerlar" :value="stats.couriers" icon="mdi-bike" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" />
-      </v-col>
-    </v-row>
+    <div class="bz-kpi-rail">
+      <BzKpiTile label="Jami xodimlar" :value="stats.total" icon="mdi-account-group-outline" color="#10B981" bg="rgba(16,185,129,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Adminlar" :value="stats.admins" icon="mdi-shield-account-outline" color="#F43F5E" bg="rgba(244,63,94,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Menejerlar" :value="stats.managers" icon="mdi-account-tie-outline" color="#6366F1" bg="rgba(99,102,241,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Kuryerlar" :value="stats.couriers" icon="mdi-bike" color="#F59E0B" bg="rgba(245,158,11,0.10)" :loading="statsLoading" />
+    </div>
 
     <BzFilterBar v-model:search-value="f.q" search-placeholder="Ism, username, telefon…" @search="onSearch">
       <v-select v-model="f.role" :items="roles" item-title="t" item-value="v" placeholder="Rol" clearable hide-details density="comfortable" style="max-width:170px" @update:model-value="load" />
       <v-select v-model="f.is_active" :items="[{t:'Faol',v:'true'},{t:'Nofaol',v:'false'}]" item-title="t" item-value="v" placeholder="Holat" clearable hide-details density="comfortable" style="max-width:140px" @update:model-value="load" />
     </BzFilterBar>
 
-    <v-card rounded="xl" class="bz-card">
-      <v-data-table :headers="headers" :items="users" :loading="loading" hide-default-footer :items-per-page="f.per_page">
-        <template #item.name="{ item }">
-          <div class="d-flex align-center ga-3">
-            <v-avatar size="36" color="primary" variant="tonal">
-              <span style="font-size:13px;font-weight:800">{{ fmt.initials(item.first_name, item.last_name) }}</span>
-            </v-avatar>
-            <div>
-              <div style="font-weight:700;font-size:13px">{{ fmt.fullName(item) }}</div>
-              <div style="font-size:11px;color:var(--bz-text-3)">@{{ item.username }}</div>
-            </div>
+    <BzDataTable
+      v-model:page="f.page"
+      v-model:per-page="f.per_page"
+      :headers="headers"
+      :items="users"
+      :loading="loading"
+      :total="total"
+      item-value="id"
+      empty-icon="mdi-shield-account-outline"
+      empty-title="Foydalanuvchilar topilmadi"
+      @update:page="load"
+      @update:per-page="load"
+    >
+      <template #item.name="{ item }">
+        <div class="d-flex align-center ga-3">
+          <v-avatar size="36" color="primary" variant="tonal">
+            <span style="font-size:13px;font-weight:800">{{ fmt.initials(item.first_name, item.last_name) }}</span>
+          </v-avatar>
+          <div>
+            <div style="font-weight:700;font-size:13px">{{ fmt.fullName(item) }}</div>
+            <div style="font-size:11px;color:var(--bz-text-3)">@{{ item.username }}</div>
           </div>
-        </template>
+        </div>
+      </template>
 
-        <template #item.role="{ item }">
-          <v-chip :color="ROLE_COLORS[item.role] || 'grey'" variant="tonal" size="x-small" class="chip-sm">
-            {{ ROLE_LABELS[item.role] || item.role }}
-          </v-chip>
-        </template>
+      <template #item.role="{ item }">
+        <v-chip :color="ROLE_COLORS[item.role] || 'grey'" variant="tonal" size="x-small" class="chip-sm">
+          {{ ROLE_LABELS[item.role] || item.role }}
+        </v-chip>
+      </template>
 
-        <template #item.last_seen_at="{ item }">
-          <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.relativeTime(item.last_seen_at) }}</span>
-        </template>
+      <template #item.last_seen_at="{ item }">
+        <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.relativeTime(item.last_seen_at) }}</span>
+      </template>
 
-        <template #item.is_active="{ item }">
-          <v-chip :color="item.is_active ? 'success' : 'error'" variant="tonal" size="x-small" class="chip-sm">
-            {{ item.is_active ? 'Faol' : 'Nofaol' }}
-          </v-chip>
-        </template>
+      <template #item.is_active="{ item }">
+        <v-chip :color="item.is_active ? 'success' : 'error'" variant="tonal" size="x-small" class="chip-sm">
+          {{ item.is_active ? 'Faol' : 'Nofaol' }}
+        </v-chip>
+      </template>
 
-        <template #item.created_at="{ item }">
-          <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.date(item.created_at) }}</span>
-        </template>
+      <template #item.created_at="{ item }">
+        <span style="font-size:12px;color:var(--bz-text-3)">{{ fmt.date(item.created_at) }}</span>
+      </template>
 
-        <template #item.actions="{ item }">
-          <div class="d-flex">
-            <v-btn icon variant="text" size="small" @click="openEdit(item)">
-              <v-icon size="17">mdi-pencil-outline</v-icon>
-            </v-btn>
-            <v-btn icon variant="text" size="small" color="error" @click="confirmDel(item)">
-              <v-icon size="17">mdi-delete-outline</v-icon>
-            </v-btn>
-          </div>
-        </template>
-
-        <template #loading><BzSkeleton v-for="n in 5" :key="n" type="row" /></template>
-        <template #no-data><BzEmptyState icon="mdi-shield-account-outline" title="Foydalanuvchilar topilmadi" /></template>
-      </v-data-table>
-
-      <v-divider />
-      <div class="d-flex align-center justify-space-between px-4 py-3 ga-3">
-        <div style="font-size:13px;color:var(--bz-text-3)">Jami: <b style="color:var(--bz-text-1)">{{ total }}</b> ta</div>
-        <v-pagination v-model="f.page" :length="pages" :total-visible="5" size="small" rounded="lg" @update:model-value="load" />
-        <v-select v-model="f.per_page" :items="[10,20,50]" hide-details density="compact" style="max-width:85px" @update:model-value="load" />
-      </div>
-    </v-card>
+      <template #item.actions="{ item }">
+        <div class="d-flex">
+          <v-btn icon variant="text" size="small" @click="openEdit(item)">
+            <v-icon size="17">mdi-pencil-outline</v-icon>
+          </v-btn>
+          <v-btn icon variant="text" size="small" color="error" @click="confirmDel(item)">
+            <v-icon size="17">mdi-delete-outline</v-icon>
+          </v-btn>
+        </div>
+      </template>
+    </BzDataTable>
 
     <!-- Edit/Create dialog -->
     <v-dialog v-model="dialog" max-width="640" persistent>
@@ -163,10 +155,10 @@ import { usersApi, statsApi } from '@/api'
 import { useFormat, ROLE_LABELS, ROLE_COLORS } from '@/composables/useFormat'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
-import BzStatCard    from '@/components/common/BzStatCard.vue'
+import BzKpiTile     from '@/components/common/BzKpiTile.vue'
 import BzFilterBar   from '@/components/common/BzFilterBar.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
-import BzSkeleton    from '@/components/common/BzSkeleton.vue'
+import BzDataTable   from '@/components/common/BzDataTable.vue'
 import BzPageLoader  from '@/components/common/BzPageLoader.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 

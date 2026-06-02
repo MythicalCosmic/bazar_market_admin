@@ -7,20 +7,12 @@
     </BzPageHeader>
 
     <!-- Stats -->
-    <v-row dense class="mb-2">
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Jami" :value="stats.total" icon="mdi-tag-multiple-outline" color="#3B82F6" bg-color="rgba(59,130,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#16A34A" bg-color="rgba(22,163,74,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Ota-kategoriyalar" :value="stats.root" icon="mdi-folder-outline" color="#8B5CF6" bg-color="rgba(139,92,246,0.10)" :loading="statsLoading" />
-      </v-col>
-      <v-col cols="6" sm="3">
-        <BzStatCard title="Subkategoriyalar" :value="stats.sub" icon="mdi-source-branch" color="#F59E0B" bg-color="rgba(245,158,11,0.10)" :loading="statsLoading" />
-      </v-col>
-    </v-row>
+    <div class="bz-kpi-rail">
+      <BzKpiTile label="Jami" :value="stats.total" icon="mdi-tag-multiple-outline" color="#3B82F6" bg="rgba(59,130,246,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Faol" :value="stats.active" icon="mdi-check-circle-outline" color="#10B981" bg="rgba(16,185,129,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Ota-kategoriyalar" :value="stats.root" icon="mdi-folder-outline" color="#8B5CF6" bg="rgba(139,92,246,0.10)" :loading="statsLoading" />
+      <BzKpiTile label="Subkategoriyalar" :value="stats.sub" icon="mdi-source-branch" color="#F59E0B" bg="rgba(245,158,11,0.10)" :loading="statsLoading" />
+    </div>
 
     <!-- Loading -->
     <v-row v-if="loading" dense>
@@ -129,7 +121,7 @@
         <!-- Header -->
         <div class="bz-dialog-header">
           <div class="d-flex align-center ga-3">
-            <div class="bz-dialog-icon" :style="{ background: editItem ? 'var(--bz-primary-soft)' : 'rgba(34,197,94,0.12)' }">
+            <div class="bz-dialog-icon" :style="{ background: editItem ? 'var(--bz-primary-soft)' : 'var(--bz-primary-soft)' }">
               <v-icon :color="editItem ? 'primary' : 'success'" size="22">{{ editItem ? 'mdi-pencil-outline' : 'mdi-plus' }}</v-icon>
             </div>
             <div>
@@ -273,7 +265,7 @@ import { ref, computed, onMounted } from 'vue'
 import { categoriesApi, statsApi } from '@/api'
 import { useSnackStore } from '@/stores/snack'
 import BzPageHeader  from '@/components/common/BzPageHeader.vue'
-import BzStatCard    from '@/components/common/BzStatCard.vue'
+import BzKpiTile     from '@/components/common/BzKpiTile.vue'
 import BzEmptyState  from '@/components/common/BzEmptyState.vue'
 import BzConfirmDialog from '@/components/common/BzConfirmDialog.vue'
 import BzImg           from '@/components/common/BzImg.vue'

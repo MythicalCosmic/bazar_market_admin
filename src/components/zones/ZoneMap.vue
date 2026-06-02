@@ -30,8 +30,8 @@ const origCoords = new Map()   // zoneId -> JSON snapshot taken when editing sta
 
 function styleFor(zone, isSelected) {
   if (!zone.is_active) return { strokeColor: '#94A3B8', fillColor: '#94A3B8' }
-  if (isSelected)      return { strokeColor: '#16A34A', fillColor: '#22C55E' }
-  return { strokeColor: '#3B82F6', fillColor: '#60A5FA' }
+  if (isSelected)      return { strokeColor: '#10B981', fillColor: '#34D399' }
+  return { strokeColor: '#6366F1', fillColor: '#818CF8' }
 }
 
 // GeoJSON Polygon (rings of [lng, lat]) -> Yandex contours (rings of [lat, lng]).
@@ -84,7 +84,7 @@ function startDrawing() {
   cancelDrawing()
   drawPoly = new ymaps.Polygon([], {}, {
     editorDrawingCursor: 'crosshair',
-    fillColor: '#22C55E', fillOpacity: 0.18, strokeColor: '#16A34A', strokeWidth: 2,
+    fillColor: '#34D399', fillOpacity: 0.18, strokeColor: '#10B981', strokeWidth: 2,
   })
   map.geoObjects.add(drawPoly)
   drawPoly.editor.startDrawing()
