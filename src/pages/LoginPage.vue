@@ -1,5 +1,5 @@
 <template>
-  <v-app theme="light">
+  <v-app theme="dark">
     <div class="login-bg d-flex align-center justify-center" style="min-height:100vh;position:relative;overflow:hidden">
       <div class="bz-mesh bz-mesh-1" />
       <div class="bz-mesh bz-mesh-2" />
@@ -115,12 +115,15 @@ async function submit() {
   width: 444px;
   max-width: 100%;
   position: relative;
-  background: rgba(255,255,255,0.94) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.6) !important;
-  box-shadow: 0 40px 90px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04),
-              inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  background: rgba(17,25,44,0.72) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow: 0 40px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02),
+              inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .bz-login-card { background: #0E1626 !important; }
 }
 .bz-login-mark {
   width: 66px; height: 66px;
@@ -130,6 +133,44 @@ async function submit() {
 }
 @media (max-width: 600px) {
   .bz-login-card { padding: 24px !important; }
+}
+
+/* ── Input harmony ──────────────────────────────────────────────
+   Both fields must read as the SAME component. Without this, the
+   focused field gets a bright fill + glow while the empty one looks
+   like a flat grey box — two different-looking inputs. We pin a
+   consistent surface, a clearly-visible border, and a focus state
+   that only swaps the border colour (no jarring fill jump). */
+.bz-login-card :deep(.v-field) {
+  border-radius: var(--bz-radius-md);
+  background: rgba(255,255,255,0.04);
+}
+.bz-login-card :deep(.v-field__outline) {
+  --v-field-border-opacity: 1;
+  color: rgba(255,255,255,0.16);
+}
+.bz-login-card :deep(.v-field--focused .v-field__outline) {
+  color: var(--bz-primary);
+}
+/* The focus glow rounds at radius-md, but Vuetify's outline segments keep the
+   default ~4px corners — so a focused field looked rounder than an empty one.
+   Pin both segments to radius-md so every field has identical corners. */
+.bz-login-card :deep(.v-field__outline__start) {
+  border-top-left-radius: var(--bz-radius-md);
+  border-bottom-left-radius: var(--bz-radius-md);
+}
+.bz-login-card :deep(.v-field__outline__end) {
+  border-top-right-radius: var(--bz-radius-md);
+  border-bottom-right-radius: var(--bz-radius-md);
+}
+/* Neutralise browser autofill so an autofilled field isn't recoloured
+   differently from an empty one. */
+.bz-login-card :deep(input:-webkit-autofill),
+.bz-login-card :deep(input:-webkit-autofill:focus) {
+  -webkit-box-shadow: 0 0 0 1000px #182037 inset;
+  -webkit-text-fill-color: #F1F5F9;
+  caret-color: #F1F5F9;
+  transition: background-color 9999s ease-in-out 0s;
 }
 .bz-mesh {
   position: absolute;

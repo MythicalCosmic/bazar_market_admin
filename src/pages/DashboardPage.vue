@@ -1,13 +1,18 @@
 <template>
-  <div class="bz-dash">
-    <!-- ── Head ───────────────────────────────────────────── -->
-    <div class="bz-dash-head bz-rise">
-      <div>
-        <div class="page-title">Boshqaruv paneli</div>
-        <div class="page-subtitle">{{ welcomeText }} · {{ rangeLabel }}</div>
+  <div class="dx">
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <header class="dx-head bz-rise">
+      <div class="dx-head-titles">
+        <div class="page-title">Moliyaviy panel</div>
+        <div class="page-subtitle">{{ welcome }} · {{ rangeLabel }} · sof foyda real vaqtda hisoblanadi</div>
       </div>
-      <div class="d-flex align-center ga-2 flex-wrap">
-        <v-btn-toggle :model-value="useCustom ? null : period" mandatory density="comfortable" color="primary" variant="outlined" rounded="lg" @update:model-value="setPreset">
+
+      <div class="dx-head-ctrls">
+        <v-btn-toggle
+          :model-value="custom.on ? null : preset" mandatory density="comfortable"
+          color="primary" variant="outlined" rounded="lg" @update:model-value="setPreset"
+        >
+          <v-btn value="today" size="small">Bugun</v-btn>
           <v-btn value="7"  size="small">7 kun</v-btn>
           <v-btn value="30" size="small">30 kun</v-btn>
           <v-btn value="90" size="small">90 kun</v-btn>
@@ -15,628 +20,715 @@
 
         <v-menu v-model="dateMenu" :close-on-content-click="false" location="bottom end">
           <template #activator="{ props: act }">
-            <v-btn v-bind="act" :variant="useCustom ? 'flat' : 'outlined'" :color="useCustom ? 'primary' : undefined" rounded="lg" size="small">
+            <v-btn v-bind="act" :variant="custom.on ? 'flat' : 'outlined'" :color="custom.on ? 'primary' : undefined" rounded="lg" size="small">
               <v-icon start size="16">mdi-calendar-range</v-icon>
-              <span v-if="useCustom && customFrom && customTo">{{ customFrom }} → {{ customTo }}</span>
+              <span v-if="custom.on">{{ custom.from }} → {{ custom.to }}</span>
               <span v-else>Sana</span>
             </v-btn>
           </template>
-          <div class="bz-datemenu bz-card pa-4" :class="{ 'is-dark': isDarkTheme }">
+          <div class="bz-card pa-4" :class="{ 'is-dark': isDark }" style="width:280px">
             <div class="section-label mb-3">Maxsus oraliq</div>
-            <v-text-field v-model="customFrom" type="date" label="Dan" density="compact" hide-details class="mb-2" />
-            <v-text-field v-model="customTo" type="date" label="Gacha" density="compact" hide-details class="mb-3" />
+            <v-text-field v-model="custom.from" type="date" label="Dan" density="compact" hide-details class="mb-2" />
+            <v-text-field v-model="custom.to" type="date" label="Gacha" density="compact" hide-details class="mb-3" />
             <div class="d-flex ga-2 align-center">
               <v-btn size="small" variant="text" @click="clearCustom">Tozalash</v-btn>
               <v-spacer />
-              <v-btn size="small" color="primary" variant="flat" :disabled="!customFrom || !customTo" @click="applyCustom">Qo'llash</v-btn>
+              <v-btn size="small" color="primary" variant="flat" :disabled="!custom.from || !custom.to" @click="applyCustom">Qo'llash</v-btn>
             </div>
           </div>
         </v-menu>
 
-        <v-btn color="primary" variant="flat" rounded="lg" size="small" to="/analytics" class="d-none d-sm-flex">
-          <v-icon start size="16">mdi-chart-box-outline</v-icon>Tahlil
+        <v-btn icon variant="outlined" rounded="lg" size="small" :loading="loading" title="Yangilash" @click="reload">
+          <v-icon size="18">mdi-refresh</v-icon>
         </v-btn>
       </div>
+    </header>
+
+    <!-- ── Data-quality banner ─────────────────────────────────── -->
+    <div v-if="!loading && coverageNote" class="dx-note bz-rise" :class="coverageNote.tone">
+      <v-icon size="18">{{ coverageNote.icon }}</v-icon>
+      <span>{{ coverageNote.text }}</span>
     </div>
 
-    <!-- ── KPI rail ───────────────────────────────────────── -->
-    <div class="bz-kpi-rail">
+    <!-- ── KPI rail ────────────────────────────────────────────── -->
+    <div class="dx-kpis">
       <div
-        v-for="(t, i) in kpiTiles" :key="t.key"
-        class="bz-kpi bz-card bz-rise"
-        :style="`animation-delay:${i * 60}ms`"
+        v-for="(k, i) in kpis" :key="k.key"
+        class="dx-kpi bz-card bz-rise" :class="{ 'is-hero': k.hero }"
+        :style="`animation-delay:${i * 55}ms`"
       >
-        <div class="bz-kpi-head">
-          <div class="bz-kpi-ico" :style="`color:${t.color};background:${t.color}1f`">
-            <v-icon :color="t.color" size="18">{{ t.icon }}</v-icon>
-          </div>
-          <span class="bz-kpi-label">{{ t.label }}</span>
-          <span v-if="t.delta != null" class="bz-kpi-delta" :class="t.delta >= 0 ? 'is-up' : 'is-down'">
-            <v-icon size="12">{{ t.delta >= 0 ? 'mdi-trending-up' : 'mdi-trending-down' }}</v-icon>
-            {{ Math.abs(t.delta).toFixed(1) }}%
+        <div class="dx-kpi-top">
+          <span class="dx-kpi-ico" :style="`color:${k.color};background:${k.color}22`">
+            <v-icon :color="k.color" size="17">{{ k.icon }}</v-icon>
+          </span>
+          <span class="dx-kpi-label">{{ k.label }}</span>
+          <span v-if="showDeltas && k.delta != null" class="dx-delta" :class="k.delta >= 0 ? 'up' : 'down'">
+            <v-icon size="11">{{ k.delta >= 0 ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>{{ Math.abs(k.delta).toFixed(1) }}%
           </span>
         </div>
-        <div class="bz-kpi-val num">
-          <span v-if="loading" class="bz-skeleton" style="width:70%;height:26px;display:block;border-radius:8px;margin-top:6px" />
-          <template v-else>{{ t.value }}<small v-if="t.unit">{{ t.unit }}</small></template>
+        <div class="dx-kpi-val num">
+          <template v-if="loading"><span class="bz-skeleton dx-sk" /></template>
+          <template v-else>{{ k.value }}<small v-if="k.unit">{{ k.unit }}</small></template>
         </div>
-        <div class="bz-kpi-spark">
-          <Sparkline v-if="!loading && t.series.length" :series="t.series" :color="t.color" />
+        <div v-if="k.sub" class="dx-kpi-sub">{{ k.sub }}</div>
+        <div v-if="k.series" class="dx-kpi-spark">
+          <Sparkline v-if="!loading && k.series.length" :series="k.series" :color="k.color" />
         </div>
       </div>
     </div>
 
-    <!-- ── Bento ──────────────────────────────────────────── -->
-    <div class="bz-bento">
-      <!-- Revenue area -->
-      <section class="bz-card bz-pad bz-b-rev">
-        <header class="bz-wh">
+    <!-- ── Main bento ──────────────────────────────────────────── -->
+    <div class="dx-grid">
+      <!-- Trend: revenue vs profit -->
+      <section class="bz-card dx-pad dx-c-trend">
+        <header class="dx-wh">
           <div>
-            <div class="bz-wt">Tushum dinamikasi</div>
-            <div class="bz-ws">Kunlik tushum · oxirgi {{ period }} kun</div>
+            <div class="dx-wt">Sotuv va sof foyda dinamikasi</div>
+            <div class="dx-ws">Kunlik · {{ rangeLabel }}</div>
           </div>
-          <v-chip color="primary" variant="tonal" size="small" class="chip-sm">
-            <v-icon start size="12">mdi-cash</v-icon>{{ fmt.price(periodRevenue) }}
-          </v-chip>
+          <v-btn-toggle v-model="visibleSeries" multiple density="comfortable" variant="outlined" rounded="lg" color="primary">
+            <v-btn value="revenue" size="x-small">Sotuv</v-btn>
+            <v-btn value="cost" size="x-small">Tannarx</v-btn>
+            <v-btn value="profit" size="x-small">Foyda</v-btn>
+          </v-btn-toggle>
         </header>
-        <BzSkeleton v-if="loading" type="chart" :height="260" />
+        <BzSkeleton v-if="loading" type="chart" :height="300" />
         <LineChart
-          v-else-if="revenueChart.categories.length"
-          :series="[{ name: 'Tushum', data: revenueChart.values }]"
-          :categories="revenueChart.categories"
-          :format-y="v => fmt.compact(v)"
-          :height="260"
+          v-else-if="trendSeries.length && axis.cats.length"
+          :series="trendSeries" :categories="axis.cats"
+          :colors="trendColors" :format-y="v => fmt.compact(v)" :height="300"
         />
-        <BzEmptyState v-else icon="mdi-chart-line" title="Ma'lumot yo'q" subtitle="Bu davrga tushum qayd etilmagan" />
+        <BzEmptyState v-else icon="mdi-chart-areaspline" title="Ma'lumot yo'q" subtitle="Bu oraliqda buyurtma topilmadi" />
       </section>
 
-      <!-- Completion gauge -->
-      <section class="bz-card bz-pad bz-b-gauge">
-        <header class="bz-wh"><div class="bz-wt">Bajarilish</div></header>
+      <!-- Profit quality -->
+      <section class="bz-card dx-pad dx-c-quality">
+        <header class="dx-wh"><div class="dx-wt">Foyda sifati</div></header>
         <BzSkeleton v-if="loading" type="chart" :height="200" />
         <template v-else>
-          <RadialChart :value="completionPct" label="Yakunlangan" color="#10B981" :height="210" />
-          <div class="bz-gauge-foot">
-            <div><span class="num bz-gauge-n">{{ kpis.totalOrders }}</span><span class="bz-gauge-l">Jami</span></div>
-            <div><span class="num bz-gauge-n">{{ deliveredCount }}</span><span class="bz-gauge-l">Yetkazildi</span></div>
-          </div>
-        </template>
-      </section>
-
-      <!-- Orders per day bars -->
-      <section class="bz-card bz-pad bz-b-bars">
-        <header class="bz-wh">
-          <div><div class="bz-wt">Buyurtmalar oqimi</div><div class="bz-ws">Kunlik soni</div></div>
-        </header>
-        <BzSkeleton v-if="loading" type="chart" :height="220" />
-        <BarChart
-          v-else-if="revenueChart.categories.length"
-          :series="[{ name: 'Buyurtmalar', data: ordersSeries }]"
-          :categories="revenueChart.categories"
-          :colors="['#6366F1']"
-          :height="220"
-        />
-        <BzEmptyState v-else icon="mdi-chart-bar" title="Ma'lumot yo'q" />
-      </section>
-
-      <!-- Status donut + breakdown -->
-      <section class="bz-card bz-pad bz-b-donut">
-        <header class="bz-wh"><div class="bz-wt">Buyurtmalar holati</div></header>
-        <BzSkeleton v-if="loading" type="chart" :height="200" />
-        <template v-else-if="statusList.length">
-          <DonutChart
-            :series="orderStatusChart.values" :labels="orderStatusChart.labels"
-            :total="kpis.totalOrders" total-label="Jami" :height="200"
-          />
-          <div class="bz-statlist">
-            <div v-for="s in statusList" :key="s.label" class="bz-statrow">
-              <span class="bz-dot" :style="`background:${s.color}`" />
-              <span class="bz-statname">{{ s.label }}</span>
-              <span class="num bz-statval">{{ s.value }}</span>
-              <span class="bz-statpct">{{ s.pct }}%</span>
+          <RadialChart :value="totals.margin" label="Marja" :color="marginColor" :height="190" />
+          <div class="dx-q-rows">
+            <div class="dx-q-row">
+              <span class="dx-q-k"><span class="dx-dot" style="background:#6366F1" />Sotuv</span>
+              <span class="num dx-q-v">{{ fmt.price(totals.revenue) }}</span>
+            </div>
+            <div class="dx-q-row">
+              <span class="dx-q-k"><span class="dx-dot" style="background:#F59E0B" />Tannarx</span>
+              <span class="num dx-q-v">−{{ fmt.price(totals.cost) }}</span>
+            </div>
+            <div class="dx-q-row dx-q-row--strong">
+              <span class="dx-q-k"><span class="dx-dot" style="background:#10B981" />Sof foyda</span>
+              <span class="num dx-q-v" :style="`color:${marginColor}`">{{ fmt.price(totals.profit) }}</span>
+            </div>
+            <div class="dx-q-row">
+              <span class="dx-q-k"><v-icon size="14" color="success">mdi-check-decagram-outline</v-icon>To'langan tushum</span>
+              <span class="num dx-q-v">{{ fmt.price(totals.realized) }}</span>
             </div>
           </div>
         </template>
-        <BzEmptyState v-else icon="mdi-chart-donut" title="Ma'lumot yo'q" />
       </section>
 
-      <!-- Top products bar list -->
-      <section class="bz-card bz-pad bz-b-top">
-        <header class="bz-wh">
-          <div class="bz-wt">Eng ko'p sevilganlar</div>
-          <v-icon size="17" color="warning">mdi-heart</v-icon>
+      <!-- Top products by profit -->
+      <section class="bz-card dx-pad dx-c-top">
+        <header class="dx-wh">
+          <div class="dx-wt">Eng foydali mahsulotlar</div>
+          <v-icon size="17" color="success">mdi-trophy-outline</v-icon>
         </header>
-        <template v-if="favoritesLoading">
-          <BzSkeleton v-for="n in 5" :key="n" type="row" />
-        </template>
-        <template v-else-if="topFavorites.length">
-          <div v-for="(p, i) in topFavorites" :key="p.product_id" class="bz-toprow">
-            <span class="bz-toprank">{{ i + 1 }}</span>
-            <div class="bz-topmid">
-              <div class="bz-topname">{{ p.name }}</div>
-              <div class="bz-topbar"><span :style="`width:${maxFav ? (p.favorite_count / maxFav * 100) : 0}%`" /></div>
+        <template v-if="loading"><BzSkeleton v-for="n in 5" :key="n" type="row" /></template>
+        <template v-else-if="topProducts.length">
+          <div v-for="(p, i) in topProducts" :key="p.key" class="dx-prow">
+            <span class="dx-rank">{{ i + 1 }}</span>
+            <div class="dx-pmid">
+              <div class="dx-pname">{{ p.name }}</div>
+              <div class="dx-pbar"><span :style="`width:${maxProductProfit ? Math.max(4, p.profit / maxProductProfit * 100) : 0}%`" /></div>
             </div>
-            <span class="num bz-topval">{{ p.favorite_count }}</span>
+            <div class="dx-pmeta">
+              <span class="num dx-pprofit">{{ fmt.compact(p.profit) }}</span>
+              <span class="dx-pmargin">{{ p.margin.toFixed(0) }}% · {{ fmt.compact(p.qty) }} dona</span>
+            </div>
           </div>
         </template>
-        <BzEmptyState v-else icon="mdi-heart-off-outline" title="Ma'lumot yo'q" />
+        <BzEmptyState v-else icon="mdi-cube-outline" title="Ma'lumot yo'q" />
+      </section>
+
+      <!-- By category -->
+      <section class="bz-card dx-pad dx-c-cat">
+        <header class="dx-wh">
+          <div class="dx-wt">Kategoriya bo'yicha foyda</div>
+          <v-icon size="17" color="primary">mdi-tag-multiple-outline</v-icon>
+        </header>
+        <template v-if="loading"><BzSkeleton v-for="n in 5" :key="n" type="row" /></template>
+        <template v-else-if="categoryAgg.length">
+          <div v-for="c in categoryAgg" :key="c.name" class="dx-crow">
+            <span class="dx-cname">{{ c.name }}</span>
+            <div class="dx-cbar"><span :style="`width:${maxCatRevenue ? c.revenue / maxCatRevenue * 100 : 0}%`" /></div>
+            <span class="num dx-cval">{{ fmt.compact(c.profit) }}</span>
+            <span class="dx-cmargin">{{ c.margin.toFixed(0) }}%</span>
+          </div>
+        </template>
+        <BzEmptyState v-else icon="mdi-tag-off-outline" title="Ma'lumot yo'q" />
       </section>
 
       <!-- Payment methods -->
-      <section class="bz-card bz-pad bz-b-pay">
-        <header class="bz-wh"><div class="bz-wt">To'lov usullari</div></header>
-        <BzSkeleton v-if="extraLoading" type="chart" :height="200" />
+      <section class="bz-card dx-pad dx-c-pay">
+        <header class="dx-wh"><div class="dx-wt">To'lov usullari</div></header>
+        <BzSkeleton v-if="loading" type="chart" :height="220" />
         <DonutChart
-          v-else-if="paymentChart.labels.length"
+          v-else-if="paymentChart.values.length"
           :series="paymentChart.values" :labels="paymentChart.labels"
-          :total="paymentTotal" total-label="Jami" :height="230"
-          :colors="['#10B981','#6366F1','#F59E0B','#06B6D4','#F43F5E']"
+          :total="totals.revenue" total-label="Sotuv" :height="240"
+          :colors="['#10B981','#6366F1','#F59E0B','#06B6D4','#F43F5E','#A855F7']"
         />
         <BzEmptyState v-else icon="mdi-credit-card-outline" title="Ma'lumot yo'q" />
       </section>
 
-      <!-- Review ratings -->
-      <section class="bz-card bz-pad bz-b-rate">
-        <header class="bz-wh"><div class="bz-wt">Sharhlar reytingi</div><v-icon size="17" color="warning">mdi-star</v-icon></header>
-        <BzSkeleton v-if="extraLoading" type="chart" :height="180" />
-        <template v-else>
-          <div class="bz-rate-big">
-            <span class="num bz-rate-avg">{{ reviewStats.avg ? reviewStats.avg.toFixed(1) : '—' }}</span>
-            <div>
-              <div class="bz-rate-stars">
-                <v-icon v-for="n in 5" :key="n" size="15" :color="n <= Math.round(reviewStats.avg) ? 'warning' : 'grey-darken-1'">mdi-star</v-icon>
-              </div>
-              <span class="bz-rate-total">{{ reviewStats.total }} ta sharh</span>
-            </div>
-          </div>
-          <div v-for="r in reviewStats.byRating" :key="r.label" class="bz-rate-row">
-            <span class="bz-rate-k">{{ r.label }}★</span>
-            <div class="bz-rate-bar"><span :style="`width:${r.pct}%`" /></div>
-            <span class="bz-rate-v num">{{ r.value }}</span>
-          </div>
-        </template>
+      <!-- Status -->
+      <section class="bz-card dx-pad dx-c-status">
+        <header class="dx-wh"><div class="dx-wt">Buyurtma holatlari</div></header>
+        <BzSkeleton v-if="loading" type="chart" :height="220" />
+        <DonutChart
+          v-else-if="statusChart.values.length"
+          :series="statusChart.values" :labels="statusChart.labels"
+          :total="totals.count" total-label="Jami" :height="240"
+          :colors="statusChart.colors"
+        />
+        <BzEmptyState v-else icon="mdi-chart-donut" title="Ma'lumot yo'q" />
       </section>
 
-      <!-- Products health -->
-      <section class="bz-card bz-pad bz-b-prod">
-        <header class="bz-wh"><div class="bz-wt">Mahsulotlar holati</div><v-icon size="17" color="primary">mdi-cube-outline</v-icon></header>
-        <BzSkeleton v-if="extraLoading" type="chart" :height="180" />
-        <div v-else class="bz-prodgrid">
-          <div class="bz-prodcell"><span class="num bz-prodn">{{ productStats.total }}</span><span class="bz-prodl">Jami</span></div>
-          <div class="bz-prodcell"><span class="num bz-prodn" style="color:var(--bz-primary)">{{ productStats.active }}</span><span class="bz-prodl">Faol</span></div>
-          <div class="bz-prodcell"><span class="num bz-prodn" style="color:var(--bz-warn)">{{ productStats.low }}</span><span class="bz-prodl">Kam qoldi</span></div>
-          <div class="bz-prodcell"><span class="num bz-prodn" style="color:var(--bz-danger)">{{ productStats.out }}</span><span class="bz-prodl">Tugagan</span></div>
-        </div>
-      </section>
-
-      <!-- Recent orders compact table -->
-      <section class="bz-card bz-pad bz-b-recent">
-        <header class="bz-wh">
-          <div><div class="bz-wt">So'nggi buyurtmalar</div><div class="bz-ws">Yangi {{ recentOrders.length }} ta</div></div>
-          <v-btn variant="tonal" color="primary" size="small" to="/orders" rounded="lg">
-            Hammasi<v-icon end size="14">mdi-arrow-right</v-icon>
-          </v-btn>
+      <!-- Staff leaderboard -->
+      <section class="bz-card dx-pad dx-c-staff">
+        <header class="dx-wh">
+          <div>
+            <div class="dx-wt">Xodimlar reytingi</div>
+            <div class="dx-ws">Sotuv → haqiqiy foyda</div>
+          </div>
+          <v-icon size="17" color="info">mdi-shield-account-outline</v-icon>
         </header>
-        <template v-if="ordersLoading">
-          <BzSkeleton v-for="n in 6" :key="n" type="row" />
-        </template>
-        <div v-else-if="recentOrders.length" class="bz-rtable">
-          <router-link v-for="o in recentOrders" :key="o.id" :to="`/orders/${o.id}`" class="bz-rrow">
-            <v-avatar size="38" :color="orderStatusColor(o.status)" variant="tonal" class="bz-ravatar">
-              <v-icon size="17">{{ orderStatusIcon(o.status) }}</v-icon>
-            </v-avatar>
-            <div class="bz-rmain">
-              <div class="bz-rnum">#{{ o.order_number }}</div>
-              <div class="bz-rcust">{{ o.user?.first_name || o.customer_name || 'Mijoz' }} · {{ fmt.relativeTime(o.created_at) }}</div>
+        <template v-if="loading"><BzSkeleton v-for="n in 5" :key="n" type="row" /></template>
+        <template v-else-if="staffAgg.length">
+          <div v-for="(s, i) in staffAgg.slice(0, 6)" :key="s.id" class="dx-srow">
+            <v-avatar size="34" color="info" variant="tonal" class="dx-savatar">{{ initials(s.name) }}</v-avatar>
+            <div class="dx-smid">
+              <div class="dx-sname">{{ s.name }}</div>
+              <div class="dx-ssub">{{ s.orders }} buyurtma · {{ s.margin.toFixed(0) }}% marja</div>
             </div>
-            <BzStatusChip :status="o.status" :icon="true" class="bz-rstatus" />
-            <div class="num bz-rtotal">{{ fmt.price(o.total_price || o.total) }}</div>
-          </router-link>
+            <div class="dx-smeta">
+              <span class="num dx-srev">{{ fmt.compact(s.revenue) }}</span>
+              <span class="num dx-sprofit">+{{ fmt.compact(s.profit) }}</span>
+            </div>
+          </div>
+        </template>
+        <BzEmptyState v-else icon="mdi-account-off-outline" title="Xodim biriktirilmagan" subtitle="Buyurtmalarda kuryer/xodim ma'lumoti yo'q" />
+      </section>
+
+      <!-- ── The admin table ─────────────────────────────────────── -->
+      <section class="bz-card dx-c-table">
+        <div class="dx-tbar">
+          <div class="dx-wt">Buyurtmalar — foyda tahlili</div>
+          <v-spacer />
+          <v-text-field
+            v-model="q" placeholder="Raqam, mijoz, telefon…" density="compact" hide-details
+            variant="outlined" prepend-inner-icon="mdi-magnify" class="dx-search"
+          />
+          <v-select
+            v-model="fStatus" :items="statusOptions" item-title="t" item-value="v"
+            placeholder="Holat" clearable hide-details density="compact" variant="outlined" class="dx-flt"
+          />
+          <v-select
+            v-model="fPay" :items="paymentOptions" item-title="t" item-value="v"
+            placeholder="To'lov" clearable hide-details density="compact" variant="outlined" class="dx-flt"
+          />
+          <v-select
+            v-if="staffOptions.length"
+            v-model="fStaff" :items="staffOptions" item-title="t" item-value="v"
+            placeholder="Xodim" clearable hide-details density="compact" variant="outlined" class="dx-flt"
+          />
+          <v-switch v-model="paidOnly" label="Faqat to'langan" color="success" density="compact" hide-details class="dx-switch" />
+          <v-btn variant="tonal" color="primary" size="small" rounded="lg" :disabled="!tableRows.length" @click="exportCsv">
+            <v-icon start size="16">mdi-download-outline</v-icon>CSV
+          </v-btn>
         </div>
-        <BzEmptyState v-else icon="mdi-package-variant-closed" title="Buyurtmalar yo'q" />
+
+        <v-data-table
+          :headers="headers" :items="tableRows" :loading="loading"
+          :sort-by="sortBy" :items-per-page="perPage" item-value="id"
+          class="dx-table" density="comfortable"
+        >
+          <template #item.order_number="{ item }">
+            <router-link :to="`/orders/${item.id}`" class="dx-onum">#{{ item.order_number }}</router-link>
+          </template>
+          <template #item.customer="{ item }">
+            <div class="dx-cust">
+              <div class="dx-cust-n">{{ custName(item) }}</div>
+              <div class="dx-cust-p">{{ item.user?.phone || item.customer_phone || '—' }}</div>
+            </div>
+          </template>
+          <template #item.created_at="{ item }">
+            <span class="dx-date">{{ fmt.date(item.created_at) }}</span>
+          </template>
+          <template #item.status="{ item }">
+            <BzStatusChip :status="item.status" :icon="true" />
+          </template>
+          <template #item.payment="{ item }">
+            <span class="dx-pay-cell">{{ payLabel(item.payment_method) }}</span>
+            <BzStatusChip :status="item.payment_status" type="payment" />
+          </template>
+          <template #item.revenue="{ item }">
+            <span class="num dx-money">{{ fmt.price(item._p.revenue) }}</span>
+          </template>
+          <template #item.cost="{ item }">
+            <span class="num dx-money dx-muted">{{ fmt.price(item._p.cost) }}</span>
+          </template>
+          <template #item.profit="{ item }">
+            <span class="num dx-money" :class="item._p.profit >= 0 ? 'dx-pos' : 'dx-neg'">
+              {{ item._p.profit >= 0 ? '+' : '' }}{{ fmt.price(item._p.profit) }}
+            </span>
+          </template>
+          <template #item.margin="{ item }">
+            <span class="dx-marginchip" :style="marginChipStyle(item._p.margin)">
+              {{ item._p.margin.toFixed(0) }}%
+              <v-icon v-if="item._p.estimated" size="11" title="Taxminiy (tannarx to'liq emas)">mdi-approximately-equal</v-icon>
+            </span>
+          </template>
+          <template #item.staff_name="{ item }">
+            <span class="dx-staff">{{ item._p.staff.name || '—' }}</span>
+          </template>
+          <template #loading><BzSkeleton v-for="n in 8" :key="n" type="row" /></template>
+          <template #no-data><BzEmptyState icon="mdi-package-variant-closed" title="Buyurtma topilmadi" /></template>
+        </v-data-table>
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
-import { ordersApi, statsApi, favoritesApi } from '@/api'
+import { ref, reactive, computed, inject, onMounted } from 'vue'
+import { useProfitAnalytics } from '@/composables/useProfitAnalytics'
 import { useFormat, ORDER_STATUS } from '@/composables/useFormat'
 import { useAuthStore } from '@/stores/auth'
+import { useSnackStore } from '@/stores/snack'
 import BzStatusChip from '@/components/common/BzStatusChip.vue'
 import BzSkeleton   from '@/components/common/BzSkeleton.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import LineChart    from '@/components/common/charts/LineChart.vue'
-import BarChart     from '@/components/common/charts/BarChart.vue'
 import DonutChart   from '@/components/common/charts/DonutChart.vue'
 import RadialChart  from '@/components/common/charts/RadialChart.vue'
 import Sparkline    from '@/components/common/charts/Sparkline.vue'
 
-const fmt  = useFormat()
-const auth = useAuthStore()
+const fmt   = useFormat()
+const auth  = useAuthStore()
+const snack = useSnackStore()
 const theme = inject('theme', null)
-const isDarkTheme = computed(() => theme?.value === 'dark')
+const isDark = computed(() => theme?.value === 'dark')
 
-const period      = ref('30')
-const loading     = ref(true)
-const ordersLoading   = ref(true)
-const favoritesLoading = ref(true)
-const extraLoading = ref(true)
+const { loading, orders, prevTotals, ratio, coverage, load } = useProfitAnalytics()
 
-// Custom date range
-const dateMenu   = ref(false)
-const useCustom  = ref(false)
-const customFrom = ref('')
-const customTo   = ref('')
+// ── Date range ──────────────────────────────────────────────────────────
+const preset    = ref('30')
+const dateMenu  = ref(false)
+const custom    = reactive({ on: false, from: '', to: '' })
+const appliedRange = ref({ date_from: '', date_to: '' })
 
-// Extra-widget data
-const paymentChart = ref({ labels: [], values: [] })
-const paymentTotal = ref(0)
-const reviewStats  = ref({ avg: 0, total: 0, byRating: [] })
-const productStats = ref({ total: 0, active: 0, low: 0, out: 0 })
+const PAY_LABELS = { cash: 'Naqd', click: 'Click', payme: 'Payme', card: 'Karta', uzum: 'Uzum', terminal: 'Terminal' }
+const payLabel = m => PAY_LABELS[(m || '').toLowerCase()] || (m ? m[0].toUpperCase() + m.slice(1) : '—')
 
-const kpis = ref({
-  ordersToday: 0, ordersDelta: null,
-  revenueToday: 0, revenueDelta: null,
-  periodRevenue: 0,
-  newCustomers: 0,
-  avgOrder: 0,
-  totalOrders: 0,
-})
-
-const recentOrders = ref([])
-const topFavorites = ref([])
-
-// Time-series buckets
-const ordersSeries   = ref([])
-const revenueSeries  = ref([])
-const customersSeries = ref([])
-const revenueChart   = ref({ categories: [], values: [] })
-const orderStatusChart = ref({ labels: [], values: [] })
-const byStatusRaw    = ref({})
-const periodRevenue  = ref(0)
-
-const welcomeText = computed(() => {
-  const h = new Date().getHours()
-  const greet = h < 5 ? 'Xayrli tun' : h < 12 ? 'Xayrli tong' : h < 18 ? 'Xayrli kun' : 'Xayrli kech'
-  const name = auth.user?.first_name || auth.user?.username
-  return name ? `${greet}, ${name} 👋` : greet
-})
-
-const STATUS_PALETTE = ['#10B981', '#6366F1', '#F59E0B', '#06B6D4', '#F43F5E', '#A855F7', '#84CC16']
-
-const kpiTiles = computed(() => [
-  { key: 'rev',  label: 'Tushum',            value: fmt.compact(kpis.value.periodRevenue), unit: ' UZS', delta: kpis.value.revenueDelta, series: revenueSeries.value, color: '#10B981', icon: 'mdi-cash-multiple' },
-  { key: 'ord',  label: 'Buyurtmalar',       value: kpis.value.totalOrders.toLocaleString('ru-RU'), unit: '', delta: kpis.value.ordersDelta, series: ordersSeries.value, color: '#6366F1', icon: 'mdi-package-variant-closed' },
-  { key: 'avg',  label: "O'rtacha buyurtma", value: fmt.compact(kpis.value.avgOrder), unit: ' UZS', delta: null, series: revenueSeries.value, color: '#A855F7', icon: 'mdi-chart-line' },
-  { key: 'cust', label: 'Yangi mijozlar',    value: kpis.value.newCustomers.toLocaleString('ru-RU'), unit: '', delta: null, series: customersSeries.value, color: '#06B6D4', icon: 'mdi-account-plus-outline' },
-  { key: 'tord', label: 'Bugungi buyurtma',  value: kpis.value.ordersToday.toLocaleString('ru-RU'), unit: '', delta: null, series: ordersSeries.value, color: '#84CC16', icon: 'mdi-calendar-check-outline' },
-  { key: 'trev', label: 'Bugungi tushum',    value: fmt.compact(kpis.value.revenueToday), unit: ' UZS', delta: null, series: revenueSeries.value, color: '#F59E0B', icon: 'mdi-clock-time-four-outline' },
-])
-
-const rangeLabel = computed(() => {
-  if (useCustom.value && customFrom.value && customTo.value) return `${customFrom.value} → ${customTo.value}`
-  return `oxirgi ${period.value} kun`
-})
-
-const completionPct = computed(() => {
-  const s = byStatusRaw.value || {}
-  const total = Object.values(s).reduce((a, b) => a + Number(b || 0), 0)
-  if (!total) return 0
-  return (deliveredCount.value / total) * 100
-})
-const deliveredCount = computed(() => {
-  const s = byStatusRaw.value || {}
-  return Number(s.completed || 0) + Number(s.delivered || 0)
-})
-const statusList = computed(() => {
-  const { labels, values } = orderStatusChart.value
-  const total = values.reduce((a, b) => a + b, 0) || 1
-  return labels.map((l, i) => ({ label: l, value: values[i], pct: Math.round(values[i] / total * 100), color: STATUS_PALETTE[i % STATUS_PALETTE.length] }))
-})
-const maxFav = computed(() => topFavorites.value.reduce((m, p) => Math.max(m, Number(p.favorite_count || 0)), 0))
-
-function orderStatusColor(s) { return ORDER_STATUS[s]?.color || 'grey' }
-function orderStatusIcon(s)  { return ORDER_STATUS[s]?.icon  || 'mdi-help' }
-
-function dateRange(days) {
+function rangeFor() {
+  const iso = d => d.toISOString().slice(0, 10)
+  if (custom.on && custom.from && custom.to) return { date_from: custom.from, date_to: custom.to }
   const to = new Date()
   const from = new Date()
-  from.setDate(from.getDate() - Number(days))
-  return { date_from: from.toISOString().slice(0, 10), date_to: to.toISOString().slice(0, 10) }
+  if (preset.value !== 'today') from.setDate(from.getDate() - (Number(preset.value) - 1))
+  return { date_from: iso(from), date_to: iso(to) }
 }
 
-function currentRange() {
-  if (useCustom.value && customFrom.value && customTo.value) {
-    return { date_from: customFrom.value, date_to: customTo.value }
+function reload() {
+  appliedRange.value = rangeFor()
+  load(appliedRange.value)
+}
+function setPreset(v) { if (!v) return; preset.value = v; custom.on = false; reload() }
+function applyCustom() { if (!custom.from || !custom.to) return; custom.on = true; dateMenu.value = false; reload() }
+function clearCustom() { custom.on = false; custom.from = ''; custom.to = ''; dateMenu.value = false; reload() }
+
+const rangeLabel = computed(() => {
+  if (custom.on && custom.from && custom.to) return `${custom.from} → ${custom.to}`
+  return preset.value === 'today' ? 'bugun' : `oxirgi ${preset.value} kun`
+})
+
+const welcome = computed(() => {
+  const h = new Date().getHours()
+  const g = h < 5 ? 'Xayrli tun' : h < 12 ? 'Xayrli tong' : h < 18 ? 'Xayrli kun' : 'Xayrli kech'
+  const n = auth.user?.first_name || auth.user?.username
+  return n ? `${g}, ${n}` : g
+})
+
+// ── Client-side filters (instant, no refetch) ───────────────────────────
+const paidOnly = ref(false)
+const fStatus  = ref(null)
+const fPay     = ref(null)
+const fStaff   = ref(null)
+const q        = ref('')
+
+const isPaid = o => ['paid', 'completed'].includes(o.payment_status)
+
+const filtered = computed(() => orders.value.filter(o => {
+  if (paidOnly.value && !isPaid(o)) return false
+  if (fStatus.value && o.status !== fStatus.value) return false
+  if (fPay.value && (o.payment_method || '').toLowerCase() !== fPay.value) return false
+  if (fStaff.value && String(o._p.staff.id) !== String(fStaff.value)) return false
+  return true
+}))
+
+const showDeltas = computed(() => !paidOnly.value && !fStatus.value && !fPay.value && !fStaff.value)
+
+// ── Totals ──────────────────────────────────────────────────────────────
+const totals = computed(() => {
+  let revenue = 0, cost = 0, profit = 0, units = 0, realized = 0, count = 0
+  for (const o of filtered.value) {
+    const p = o._p
+    revenue += p.revenue; cost += p.cost; profit += p.profit; units += p.units; count++
+    if (isPaid(o)) realized += p.revenue
   }
-  return dateRange(period.value)
-}
-
-function setPreset(v) {
-  if (!v) return
-  period.value = v
-  useCustom.value = false
-  reloadAll()
-}
-function applyCustom() {
-  if (!customFrom.value || !customTo.value) return
-  useCustom.value = true
-  dateMenu.value = false
-  reloadAll()
-}
-function clearCustom() {
-  useCustom.value = false
-  customFrom.value = ''
-  customTo.value = ''
-  dateMenu.value = false
-  reloadAll()
-}
-
-function safeArray(v) { return Array.isArray(v) ? v : [] }
-
-async function loadStats() {
-  loading.value = true
-  const range = currentRange()
-  const [ovRes, oRes, cRes] = await Promise.allSettled([
-    statsApi.overview(range),
-    statsApi.orders(range),
-    statsApi.customers(range),
-  ])
-
-  if (ovRes.status === 'fulfilled') {
-    const d = ovRes.value.data.data || {}
-    kpis.value.ordersToday  = Number(d.orders_today || 0)
-    kpis.value.revenueToday = Number(d.revenue_today || 0)
+  return {
+    revenue, cost, profit, units, realized, count,
+    margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+    avgOrder: count ? revenue / count : 0,
+    avgProfit: count ? profit / count : 0,
   }
+})
 
-  if (oRes.status === 'fulfilled') {
-    const d = oRes.value.data.data || {}
-    kpis.value.totalOrders   = Number(d.total || 0)
-    kpis.value.avgOrder      = Number(d.revenue?.avg || 0)
-    kpis.value.periodRevenue = Number(d.revenue?.total || 0)
-    periodRevenue.value      = kpis.value.periodRevenue
-
-    const byDay = safeArray(d.orders_by_day)
-    const cats = []
-    const vals = []
-    byDay.forEach(p => {
-      const dt = new Date(p.date)
-      cats.push(!isNaN(dt.getTime())
-        ? dt.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })
-        : (p.date || '').slice(5))
-      vals.push(Number(p.revenue || 0))
-    })
-    revenueChart.value  = { categories: cats, values: vals }
-    revenueSeries.value = vals.slice(-12)
-    ordersSeries.value  = byDay.map(x => Number(x.count || 0))
-
-    if (byDay.length >= 2) {
-      const last = Number(byDay.at(-1)?.count || 0)
-      const prev = Number(byDay.at(-2)?.count || 0)
-      if (prev > 0) kpis.value.ordersDelta = ((last - prev) / prev) * 100
-    }
-    if (vals.length >= 2 && vals.at(-2) > 0) {
-      kpis.value.revenueDelta = ((vals.at(-1) - vals.at(-2)) / vals.at(-2)) * 100
-    }
-
-    const byStatus = d.by_status || {}
-    byStatusRaw.value = byStatus
-    const labels = []
-    const values = []
-    Object.entries(byStatus).forEach(([k, v]) => {
-      labels.push(ORDER_STATUS[k]?.label || k)
-      values.push(Number(v) || 0)
-    })
-    orderStatusChart.value = { labels, values }
+const deltas = computed(() => {
+  const pt = prevTotals.value
+  const d = (cur, prev) => (prev > 0 ? ((cur - prev) / prev) * 100 : null)
+  return {
+    revenue: d(totals.value.revenue, pt.revenue),
+    profit:  d(totals.value.profit, pt.profit),
+    orders:  d(totals.value.count, pt.orders),
   }
+})
 
-  if (cRes.status === 'fulfilled') {
-    const d = cRes.value.data.data || {}
-    kpis.value.newCustomers = Number(d.new_last_7d || d.new_last_30d || d.total_customers || 0)
+// ── Daily axis + series ─────────────────────────────────────────────────
+const axis = computed(() => {
+  const { date_from, date_to } = appliedRange.value
+  const days = []
+  if (date_from && date_to) {
+    const cur = new Date(date_from); const end = new Date(date_to)
+    let guard = 0
+    while (cur <= end && guard++ < 400) { days.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1) }
   }
+  const buckets = new Map(days.map(d => [d, { revenue: 0, cost: 0, profit: 0, orders: 0 }]))
+  for (const o of filtered.value) {
+    const day = (o.created_at || '').slice(0, 10)
+    const b = buckets.get(day)
+    if (!b) continue
+    b.revenue += o._p.revenue; b.cost += o._p.cost; b.profit += o._p.profit; b.orders++
+  }
+  return {
+    cats: days.map(d => new Date(d).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })),
+    revenue: days.map(d => Math.round(buckets.get(d).revenue)),
+    cost:    days.map(d => Math.round(buckets.get(d).cost)),
+    profit:  days.map(d => Math.round(buckets.get(d).profit)),
+    orders:  days.map(d => buckets.get(d).orders),
+  }
+})
 
-  loading.value = false
+const visibleSeries = ref(['revenue', 'profit'])
+const SERIES_DEF = {
+  revenue: { name: 'Sotuv',   color: '#6366F1' },
+  cost:    { name: 'Tannarx', color: '#F59E0B' },
+  profit:  { name: 'Foyda',   color: '#10B981' },
+}
+const trendSeries = computed(() =>
+  ['revenue', 'cost', 'profit']
+    .filter(k => visibleSeries.value.includes(k))
+    .map(k => ({ name: SERIES_DEF[k].name, data: axis.value[k] }))
+)
+const trendColors = computed(() =>
+  ['revenue', 'cost', 'profit'].filter(k => visibleSeries.value.includes(k)).map(k => SERIES_DEF[k].color)
+)
+
+// ── Aggregations for widgets ────────────────────────────────────────────
+const productAgg = computed(() => {
+  const m = new Map()
+  for (const o of filtered.value) for (const b of o._p.breakdown) {
+    const key = b.productId ?? b.name
+    const e = m.get(key) || { key, name: b.name, revenue: 0, profit: 0, qty: 0 }
+    e.revenue += b.revenue; e.profit += b.profit; e.qty += b.qty
+    m.set(key, e)
+  }
+  return [...m.values()].map(e => ({ ...e, margin: e.revenue > 0 ? (e.profit / e.revenue) * 100 : 0 }))
+})
+const topProducts = computed(() => [...productAgg.value].sort((a, b) => b.profit - a.profit).slice(0, 8))
+const maxProductProfit = computed(() => topProducts.value.reduce((m, p) => Math.max(m, p.profit), 0))
+
+const categoryAgg = computed(() => {
+  const m = new Map()
+  for (const o of filtered.value) for (const b of o._p.breakdown) {
+    const name = b.categoryName || 'Boshqa'
+    const e = m.get(name) || { name, revenue: 0, profit: 0 }
+    e.revenue += b.revenue; e.profit += b.profit
+    m.set(name, e)
+  }
+  return [...m.values()]
+    .map(e => ({ ...e, margin: e.revenue > 0 ? (e.profit / e.revenue) * 100 : 0 }))
+    .sort((a, b) => b.revenue - a.revenue).slice(0, 7)
+})
+const maxCatRevenue = computed(() => categoryAgg.value.reduce((m, c) => Math.max(m, c.revenue), 0))
+
+const staffAgg = computed(() => {
+  const m = new Map()
+  for (const o of filtered.value) {
+    const s = o._p.staff
+    if (s.id == null) continue
+    const e = m.get(s.id) || { id: s.id, name: s.name, revenue: 0, profit: 0, orders: 0 }
+    e.revenue += o._p.revenue; e.profit += o._p.profit; e.orders++
+    m.set(s.id, e)
+  }
+  return [...m.values()]
+    .map(e => ({ ...e, margin: e.revenue > 0 ? (e.profit / e.revenue) * 100 : 0 }))
+    .sort((a, b) => b.profit - a.profit)
+})
+
+// Donut charts
+const paymentChart = computed(() => {
+  const m = new Map()
+  for (const o of filtered.value) {
+    const k = payLabel(o.payment_method)
+    m.set(k, (m.get(k) || 0) + o._p.revenue)
+  }
+  const entries = [...m.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+  return { labels: entries.map(e => e[0]), values: entries.map(e => Math.round(e[1])) }
+})
+const statusChart = computed(() => {
+  const m = new Map()
+  for (const o of filtered.value) m.set(o.status, (m.get(o.status) || 0) + 1)
+  const palette = { pending: '#F59E0B', confirmed: '#06B6D4', preparing: '#6366F1', delivering: '#A855F7', delivered: '#10B981', completed: '#059669', cancelled: '#F43F5E' }
+  const entries = [...m.entries()].filter(([, v]) => v > 0)
+  return {
+    labels: entries.map(([k]) => ORDER_STATUS[k]?.label || k),
+    values: entries.map(([, v]) => v),
+    colors: entries.map(([k]) => palette[k] || '#8A97AB'),
+  }
+})
+
+// ── KPI tiles ───────────────────────────────────────────────────────────
+const kpis = computed(() => [
+  { key: 'profit', hero: true, label: 'Sof foyda', value: fmt.compact(totals.value.profit), unit: ' UZS', color: '#10B981', icon: 'mdi-trending-up', delta: deltas.value.profit, series: axis.value.profit, sub: `Marja ${totals.value.margin.toFixed(1)}%` },
+  { key: 'rev',    label: 'Sotuv (tushum)', value: fmt.compact(totals.value.revenue), unit: ' UZS', color: '#6366F1', icon: 'mdi-cash-multiple', delta: deltas.value.revenue, series: axis.value.revenue, sub: `Tannarx ${fmt.compact(totals.value.cost)}` },
+  { key: 'ord',    label: 'Buyurtmalar', value: totals.value.count.toLocaleString('ru-RU'), unit: '', color: '#A855F7', icon: 'mdi-package-variant-closed', delta: deltas.value.orders, series: axis.value.orders, sub: `${fmt.compact(totals.value.units)} dona sotildi` },
+  { key: 'avg',    label: "O'rtacha foyda", value: fmt.compact(totals.value.avgProfit), unit: ' UZS', color: '#06B6D4', icon: 'mdi-chart-bell-curve-cumulative', delta: null, series: null, sub: `Buyurtma o'rt. ${fmt.compact(totals.value.avgOrder)}` },
+  { key: 'paid',   label: "To'langan tushum", value: fmt.compact(totals.value.realized), unit: ' UZS', color: '#F59E0B', icon: 'mdi-check-decagram-outline', delta: null, series: null, sub: `${totals.value.revenue > 0 ? Math.round(totals.value.realized / totals.value.revenue * 100) : 0}% qoplangan` },
+])
+
+const marginColor = computed(() => {
+  const m = totals.value.margin
+  return m >= 25 ? '#10B981' : m >= 12 ? '#F59E0B' : '#F43F5E'
+})
+
+// ── Data-quality note ───────────────────────────────────────────────────
+const coverageNote = computed(() => {
+  if (ratio.value == null && !coverage.value.exact) {
+    return { tone: 'warn', icon: 'mdi-alert-outline', text: "Tannarx (cost_price) ma'lumotlari topilmadi — foyda hisoblanmadi. Mahsulotlarga tannarx kiriting." }
+  }
+  const est = coverage.value.estimated
+  const total = est + coverage.value.exact
+  if (est && total) {
+    const pct = Math.round(est / total * 100)
+    return { tone: 'info', icon: 'mdi-approximately-equal', text: `${total} ta buyurtmaning ${pct}% uchun tannarx to'liq emas — bu qism katalog o'rtacha marjasi bo'yicha taxminlandi.` }
+  }
+  return null
+})
+
+// ── Filter option lists (from the full range, unfiltered) ───────────────
+const statusOptions = computed(() => {
+  const set = new Set(orders.value.map(o => o.status).filter(Boolean))
+  return [...set].map(s => ({ v: s, t: ORDER_STATUS[s]?.label || s }))
+})
+const paymentOptions = computed(() => {
+  const set = new Set(orders.value.map(o => (o.payment_method || '').toLowerCase()).filter(Boolean))
+  return [...set].map(s => ({ v: s, t: payLabel(s) }))
+})
+const staffOptions = computed(() =>
+  staffAgg.value.map(s => ({ v: String(s.id), t: s.name }))
+)
+
+// ── Table ───────────────────────────────────────────────────────────────
+const perPage = ref(15)
+const sortBy  = ref([{ key: 'created_at', order: 'desc' }])
+const headers = [
+  { title: 'Raqam',   key: 'order_number', sortable: true },
+  { title: 'Mijoz',   key: 'customer',     sortable: false },
+  { title: 'Sana',    key: 'created_at',   sortable: true },
+  { title: 'Holat',   key: 'status',       sortable: true },
+  { title: "To'lov",  key: 'payment',      sortable: false },
+  { title: 'Sotuv',   key: 'revenue',      align: 'end', sortable: true },
+  { title: 'Tannarx', key: 'cost',         align: 'end', sortable: true },
+  { title: 'Foyda',   key: 'profit',       align: 'end', sortable: true },
+  { title: 'Marja',   key: 'margin',       align: 'end', sortable: true },
+  { title: 'Xodim',   key: 'staff_name',   sortable: true },
+]
+
+function custName(o) {
+  return [o.user?.first_name || o.customer_name, o.user?.last_name].filter(Boolean).join(' ') || 'Mijoz'
 }
 
-async function loadRecentOrders() {
-  ordersLoading.value = true
-  try {
-    const { data } = await ordersApi.list({ per_page: 8, order_by: '-created_at' })
-    recentOrders.value = data.data?.items || data.data || []
-  } catch {} finally { ordersLoading.value = false }
-}
-
-async function loadFavorites() {
-  favoritesLoading.value = true
-  try {
-    const { data } = await favoritesApi.most(6)
-    topFavorites.value = data.data || []
-  } catch {} finally { favoritesLoading.value = false }
-}
-
-// Extra widgets: payments by method, review ratings, product health.
-// Defensive parsing — endpoints' exact shapes vary, so we probe common keys.
-function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0 }
-
-function objToSeries(obj, labelMap = null) {
-  const labels = [], values = []
-  Object.entries(obj || {}).forEach(([k, v]) => {
-    const num = typeof v === 'number' ? v : Number(v?.count ?? v?.total ?? v ?? 0)
-    if (!Number.isFinite(num)) return
-    labels.push(labelMap ? (labelMap[k] || k) : k)
-    values.push(num)
+const tableRows = computed(() => {
+  const term = q.value.trim().toLowerCase()
+  if (!term) return filtered.value
+  return filtered.value.filter(o => {
+    const hay = `${o.order_number} ${custName(o)} ${o.user?.phone || o.customer_phone || ''}`.toLowerCase()
+    return hay.includes(term)
   })
-  return { labels, values }
+})
+
+function initials(name) {
+  return (name || '?').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
+}
+function marginChipStyle(m) {
+  const c = m >= 25 ? '#10B981' : m >= 12 ? '#F59E0B' : '#F43F5E'
+  return `color:${c};background:${c}1f`
 }
 
-async function loadExtra() {
-  extraLoading.value = true
-  const range = currentRange()
-  const [pRes, rRes, prodRes] = await Promise.allSettled([
-    statsApi.payments(range),
-    statsApi.reviews(range),
-    statsApi.products(range),
-  ])
-
-  if (pRes.status === 'fulfilled') {
-    const d = pRes.value.data.data || {}
-    const bm = d.by_method || d.by_payment_method || d.methods || d.by_status || {}
-    const { labels, values } = objToSeries(bm, { cash: 'Naqd', click: 'Click', payme: 'Payme', card: 'Karta' })
-    paymentChart.value = { labels, values }
-    paymentTotal.value = values.reduce((a, b) => a + b, 0)
+function exportCsv() {
+  const cols = ['Raqam', 'Mijoz', 'Telefon', 'Sana', 'Holat', "To'lov", 'Sotuv', 'Tannarx', 'Foyda', 'Marja%', 'Taxminiy', 'Xodim']
+  const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const lines = [cols.join(',')]
+  for (const o of tableRows.value) {
+    lines.push([
+      o.order_number, custName(o), o.user?.phone || o.customer_phone || '',
+      fmt.date(o.created_at), ORDER_STATUS[o.status]?.label || o.status,
+      `${payLabel(o.payment_method)} / ${o.payment_status || ''}`,
+      Math.round(o._p.revenue), Math.round(o._p.cost), Math.round(o._p.profit),
+      o._p.margin.toFixed(1), o._p.estimated ? 'ha' : "yo'q", o._p.staff.name || '',
+    ].map(esc).join(','))
   }
-
-  if (rRes.status === 'fulfilled') {
-    const d = rRes.value.data.data || {}
-    const avg = Number(d.average_rating ?? d.avg_rating ?? d.average ?? 0)
-    const br = d.by_rating || d.ratings || {}
-    const total = Number(d.total ?? d.total_reviews ?? Object.values(br).reduce((a, b) => a + Number(b || 0), 0))
-    const maxR = Math.max(1, ...Object.values(br).map(v => Number(v || 0)))
-    const byRating = [5, 4, 3, 2, 1].map(k => {
-      const v = Number(br[k] ?? br[String(k)] ?? 0)
-      return { label: k, value: v, pct: Math.round(v / maxR * 100) }
-    })
-    reviewStats.value = { avg, total, byRating }
-  }
-
-  if (prodRes.status === 'fulfilled') {
-    const d = prodRes.value.data.data || {}
-    productStats.value = {
-      total:  n(d.total ?? d.total_products),
-      active: n(d.active ?? d.active_count),
-      low:    n(d.low_stock ?? d.low_stock_count ?? d.low),
-      out:    n(d.out_of_stock ?? d.out_of_stock_count ?? d.inactive),
-    }
-  }
-  extraLoading.value = false
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `foyda_${appliedRange.value.date_from}_${appliedRange.value.date_to}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  snack.success(`${tableRows.value.length} ta qator eksport qilindi`)
 }
 
-function reloadAll() { loadStats(); loadExtra() }
-
-onMounted(() => { loadStats(); loadExtra(); loadRecentOrders(); loadFavorites() })
+onMounted(reload)
 </script>
 
 <style scoped>
-.bz-dash-head {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+.dx { display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.dx-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dx-head-ctrls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.is-dark :deep(input) { color-scheme: dark; }
+
+/* Data note */
+.dx-note { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-radius: var(--bz-radius-md); font-size: 13px; font-weight: 600; border: 1px solid; }
+.dx-note.info { background: var(--bz-info-soft); border-color: var(--bz-info); color: var(--bz-info); }
+.dx-note.warn { background: var(--bz-warn-soft); border-color: var(--bz-warn); color: var(--bz-warn); }
+
+/* KPI rail */
+.dx-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.dx-kpi { position: relative; padding: 16px 18px 0; min-height: 120px; overflow: hidden; }
+.dx-kpi.is-hero { background:
+  linear-gradient(135deg, rgba(16,185,129,0.16), rgba(16,185,129,0.02)),
+  var(--bz-glass-bg); border-color: var(--bz-primary-glow); }
+.dx-kpi-top { display: flex; align-items: center; gap: 8px; }
+.dx-kpi-ico { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.dx-kpi-label { font-size: 12px; font-weight: 600; color: var(--bz-text-3); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-delta { display: inline-flex; align-items: center; gap: 1px; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: var(--bz-radius-pill); }
+.dx-delta.up { color: var(--bz-primary-strong); background: var(--bz-primary-soft); }
+.dx-delta.down { color: var(--bz-danger); background: var(--bz-danger-soft); }
+.v-theme--dark .dx-delta.up { color: var(--bz-primary); }
+.dx-kpi-val { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-top: 12px; }
+.dx-kpi-val small { font-size: 12px; font-weight: 700; color: var(--bz-text-3); margin-left: 4px; }
+.dx-kpi-sub { font-size: 11.5px; color: var(--bz-text-3); font-weight: 600; margin-top: 6px; position: relative; z-index: 2; }
+.dx-kpi-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; opacity: 0.55; pointer-events: none; }
+.dx-sk { width: 70%; height: 26px; display: block; border-radius: 8px; margin-top: 4px; }
+
+/* Bento grid */
+.dx-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+.dx-pad { padding: 18px 20px; }
+.dx-c-trend   { grid-column: span 8; }
+.dx-c-quality { grid-column: span 4; }
+.dx-c-top     { grid-column: span 6; }
+.dx-c-cat     { grid-column: span 6; }
+.dx-c-pay     { grid-column: span 4; }
+.dx-c-status  { grid-column: span 4; }
+.dx-c-staff   { grid-column: span 4; }
+.dx-c-table   { grid-column: span 12; overflow: hidden; }
+
+.dx-wh { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.dx-wt { font-weight: 800; font-size: 15px; letter-spacing: -0.2px; }
+.dx-ws { font-size: 12px; color: var(--bz-text-3); margin-top: 2px; }
+
+/* Profit quality */
+.dx-q-rows { margin-top: 8px; }
+.dx-q-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--bz-border); }
+.dx-q-row:last-child { border-bottom: 0; }
+.dx-q-row--strong { font-weight: 800; }
+.dx-q-k { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--bz-text-2); }
+.dx-q-v { font-weight: 800; font-size: 14px; }
+.dx-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+/* Top products */
+.dx-prow { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.dx-rank { width: 20px; text-align: center; font-weight: 800; font-size: 12px; color: var(--bz-text-3); }
+.dx-pmid { flex: 1; min-width: 0; }
+.dx-pname { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-pbar { height: 6px; border-radius: 4px; background: var(--bz-surface-3); margin-top: 5px; overflow: hidden; }
+.dx-pbar > span { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--bz-primary-strong), var(--bz-primary)); }
+.dx-pmeta { text-align: right; flex-shrink: 0; }
+.dx-pprofit { display: block; font-weight: 800; font-size: 13.5px; color: var(--bz-primary-strong); }
+.v-theme--dark .dx-pprofit { color: var(--bz-primary); }
+.dx-pmargin { font-size: 10.5px; color: var(--bz-text-3); font-weight: 600; }
+
+/* Category */
+.dx-crow { display: grid; grid-template-columns: 1fr 90px auto 42px; align-items: center; gap: 10px; padding: 7px 0; }
+.dx-cname { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-cbar { height: 7px; border-radius: 4px; background: var(--bz-surface-3); overflow: hidden; }
+.dx-cbar > span { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #6366F1, #818CF8); }
+.dx-cval { font-weight: 800; font-size: 13px; text-align: right; }
+.dx-cmargin { font-size: 11px; color: var(--bz-text-3); text-align: right; font-weight: 700; }
+
+/* Staff */
+.dx-srow { display: flex; align-items: center; gap: 11px; padding: 7px 0; border-bottom: 1px solid var(--bz-border); }
+.dx-srow:last-child { border-bottom: 0; }
+.dx-savatar { font-size: 12px; font-weight: 800; }
+.dx-smid { flex: 1; min-width: 0; }
+.dx-sname { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-ssub { font-size: 11px; color: var(--bz-text-3); margin-top: 1px; }
+.dx-smeta { text-align: right; }
+.dx-srev { display: block; font-size: 11px; color: var(--bz-text-3); font-weight: 600; }
+.dx-sprofit { font-weight: 800; font-size: 13.5px; color: var(--bz-primary-strong); }
+.v-theme--dark .dx-sprofit { color: var(--bz-primary); }
+
+/* Table */
+.dx-tbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 16px 18px; border-bottom: 1px solid var(--bz-border); }
+.dx-search { max-width: 230px; min-width: 160px; }
+.dx-flt { max-width: 150px; min-width: 120px; }
+.dx-switch { flex: 0 0 auto; }
+.dx-table :deep(th) { font-weight: 700 !important; font-size: 12px !important; color: var(--bz-text-3) !important; white-space: nowrap; }
+.dx-onum { font-weight: 800; font-size: 13px; color: var(--bz-primary-strong); font-family: ui-monospace, monospace; text-decoration: none; }
+.v-theme--dark .dx-onum { color: var(--bz-primary); }
+.dx-cust-n { font-weight: 700; font-size: 13px; }
+.dx-cust-p { font-size: 11px; color: var(--bz-text-3); }
+.dx-date { font-size: 12px; color: var(--bz-text-2); white-space: nowrap; }
+.dx-pay-cell { display: block; font-size: 11px; color: var(--bz-text-3); font-weight: 600; margin-bottom: 2px; }
+.dx-money { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.dx-muted { color: var(--bz-text-3); }
+.dx-pos { color: var(--bz-primary-strong); }
+.v-theme--dark .dx-pos { color: var(--bz-primary); }
+.dx-neg { color: var(--bz-danger); }
+.dx-marginchip { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-size: 12px; padding: 2px 8px; border-radius: var(--bz-radius-pill); }
+.dx-staff { font-size: 12.5px; color: var(--bz-text-2); }
+
+@media (max-width: 1240px) {
+  .dx-c-trend, .dx-c-quality, .dx-c-top, .dx-c-cat,
+  .dx-c-pay, .dx-c-status, .dx-c-staff { grid-column: span 12; }
 }
-
-/* ── KPI rail ─────────────────────────────────────────────── */
-.bz-kpi-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 14px;
-  margin-bottom: 14px;
-}
-.bz-datemenu { width: 280px; background: var(--bz-glass-bg-solid) !important; }
-.bz-datemenu.is-dark :deep(input) { color-scheme: dark; }
-.bz-datemenu.is-dark :deep(.v-field) { color: var(--bz-text-1); }
-.bz-kpi { position: relative; padding: 16px 18px 0; overflow: hidden; min-height: 116px; }
-.bz-kpi-head { display: flex; align-items: center; gap: 8px; }
-.bz-kpi-ico { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
-.bz-kpi-label { font-size: 12px; font-weight: 600; color: var(--bz-text-3); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bz-kpi-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: var(--bz-radius-pill); }
-.bz-kpi-delta.is-up { color: var(--bz-primary-strong); background: var(--bz-primary-soft); }
-.bz-kpi-delta.is-down { color: var(--bz-danger); background: var(--bz-danger-soft); }
-.v-theme--dark .bz-kpi-delta.is-up { color: var(--bz-primary); }
-.bz-kpi-val { font-size: 27px; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-top: 12px; }
-.bz-kpi-val small { font-size: 13px; font-weight: 700; color: var(--bz-text-3); margin-left: 4px; }
-.bz-kpi-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 38px; opacity: 0.7; pointer-events: none; }
-
-/* ── Bento grid ───────────────────────────────────────────── */
-.bz-bento {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 14px;
-}
-.bz-pad { padding: 18px 20px; }
-.bz-b-rev    { grid-column: span 8; }
-.bz-b-gauge  { grid-column: span 4; }
-.bz-b-bars   { grid-column: span 4; }
-.bz-b-donut  { grid-column: span 4; }
-.bz-b-top    { grid-column: span 4; }
-.bz-b-pay    { grid-column: span 4; }
-.bz-b-rate   { grid-column: span 4; }
-.bz-b-prod   { grid-column: span 4; }
-.bz-b-recent { grid-column: span 12; }
-
-/* review ratings widget */
-.bz-rate-big { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.bz-rate-avg { font-size: 38px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; }
-.bz-rate-stars { line-height: 1; }
-.bz-rate-total { font-size: 12px; color: var(--bz-text-3); }
-.bz-rate-row { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
-.bz-rate-k { width: 26px; font-size: 12px; font-weight: 700; color: var(--bz-text-3); }
-.bz-rate-bar { flex: 1; height: 7px; border-radius: 4px; background: var(--bz-surface-3); overflow: hidden; }
-.bz-rate-bar > span { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-.bz-rate-v { width: 30px; text-align: right; font-size: 12px; font-weight: 700; }
-
-/* products health grid */
-.bz-prodgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.bz-prodcell {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 14px 16px; border-radius: var(--bz-radius-md);
-  background: var(--bz-surface-3); border: 1px solid var(--bz-border);
-}
-.bz-prodn { font-size: 24px; font-weight: 800; letter-spacing: -1px; }
-.bz-prodl { font-size: 11.5px; color: var(--bz-text-3); font-weight: 600; }
-
-.bz-wh { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.bz-wt { font-weight: 800; font-size: 15px; letter-spacing: -0.2px; }
-.bz-ws { font-size: 12px; color: var(--bz-text-3); margin-top: 2px; }
-
-/* gauge footer */
-.bz-gauge-foot { display: flex; justify-content: space-around; margin-top: 4px; }
-.bz-gauge-foot > div { display: flex; flex-direction: column; align-items: center; }
-.bz-gauge-n { font-size: 18px; font-weight: 800; }
-.bz-gauge-l { font-size: 11px; color: var(--bz-text-3); }
-
-/* status breakdown */
-.bz-statlist { margin-top: 6px; }
-.bz-statrow { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; }
-.bz-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.bz-statname { flex: 1; color: var(--bz-text-2); }
-.bz-statval { font-weight: 700; }
-.bz-statpct { color: var(--bz-text-3); width: 38px; text-align: right; }
-
-/* top products bar list */
-.bz-toprow { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
-.bz-toprank { width: 20px; text-align: center; font-weight: 800; font-size: 12px; color: var(--bz-text-3); }
-.bz-topmid { flex: 1; min-width: 0; }
-.bz-topname { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bz-topbar { height: 6px; border-radius: 4px; background: var(--bz-surface-3); margin-top: 5px; overflow: hidden; }
-.bz-topbar > span { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--bz-primary-strong), var(--bz-primary)); }
-.bz-topval { font-weight: 800; font-size: 13px; color: var(--bz-warn); }
-
-/* recent orders compact table */
-.bz-rtable { display: flex; flex-direction: column; }
-.bz-rrow {
-  display: grid;
-  grid-template-columns: 38px 1fr auto auto;
-  align-items: center; gap: 14px;
-  padding: 10px 10px; border-radius: 12px;
-  text-decoration: none; color: inherit;
-  border-bottom: 1px solid var(--bz-border);
-  transition: background var(--bz-dur-fast) var(--bz-ease);
-}
-.bz-rrow:last-child { border-bottom: 0; }
-.bz-rrow:hover { background: var(--bz-primary-soft); }
-.bz-rmain { min-width: 0; }
-.bz-rnum { font-weight: 800; font-size: 13.5px; color: var(--bz-primary-strong); font-family: ui-monospace, monospace; }
-.v-theme--dark .bz-rnum { color: var(--bz-primary); }
-.bz-rcust { font-size: 12px; color: var(--bz-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.bz-rtotal { font-weight: 800; font-size: 14px; white-space: nowrap; }
-@media (max-width: 700px) { .bz-rstatus { display: none; } }
-
-@media (max-width: 1100px) {
-  .bz-b-rev, .bz-b-gauge, .bz-b-bars, .bz-b-donut, .bz-b-top,
-  .bz-b-pay, .bz-b-rate, .bz-b-prod { grid-column: span 12; }
-}
-@media (max-width: 700px) {
-  .bz-kpi-rail { grid-template-columns: 1fr 1fr; }
-  .bz-rrow { grid-template-columns: 38px 1fr auto; }
+@media (max-width: 760px) {
+  .dx-kpis { grid-template-columns: 1fr 1fr; }
+  .dx-search, .dx-flt { max-width: none; flex: 1 1 140px; }
 }
 </style>
