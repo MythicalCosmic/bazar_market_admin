@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { ordersApi, productsApi } from '@/api'
+import { dayKey } from '@/composables/useFormat'
 
 // ──────────────────────────────────────────────────────────────────────────
 //  Profit analytics engine
@@ -160,31 +161,58 @@ export function useProfitAnalytics() {
 
   function priorRange({ date_from, date_to }) {
     if (!date_from || !date_to) return null
-    const from = new Date(date_from)
-    const to = new Date(date_to)
+    const from = new Date(`${date_from}T00:00:00`)
+    const to = new Date(`${date_to}T00:00:00`)
     const span = Math.max(1, Math.round((to - from) / 86400000) + 1)
     const pTo = new Date(from); pTo.setDate(pTo.getDate() - 1)
     const pFrom = new Date(pTo); pFrom.setDate(pFrom.getDate() - (span - 1))
-    const iso = d => d.toISOString().slice(0, 10)
-    return { date_from: iso(pFrom), date_to: iso(pTo) }
+    return { date_from: dayKey(pFrom), date_to: dayKey(pTo) }
+  }
+
+  // The server filters on `created_at` and different deployments disagree on the
+  // boundary (is `date_to` inclusive? interpreted at 00:00 or 23:59? UTC or local?).
+  // For a single-day "Bugun" window that ambiguity wipes out the whole result. So we
+  // fetch one day wider on each side, then keep only the orders whose *local* calendar
+  // day falls inside the requested range — exact and timezone-correct regardless of
+  // how the backend reads the dates.
+  function padRange({ date_from, date_to }) {
+    if (!date_from || !date_to) return { date_from, date_to }
+    const lo = new Date(`${date_from}T00:00:00`); lo.setDate(lo.getDate() - 1)
+    const hi = new Date(`${date_to}T00:00:00`);   hi.setDate(hi.getDate() + 1)
+    return { date_from: dayKey(lo), date_to: dayKey(hi) }
+  }
+
+  function inRange(order, from, to) {
+    const k = dayKey(order.created_at)
+    return !!k && k >= from && k <= to
   }
 
   async function load(range) {
     loading.value = true
     error.value = null
     try {
-      const products = await sweep(productsApi.list, {})
+      // Couriers (and other limited roles) may lack catalog access — a 403 here must
+      // not blank out the entire dashboard. Degrade to "no cost data": revenue/orders
+      // still come straight from the order line items.
+      let products = []
+      try { products = await sweep(productsApi.list, {}) } catch { products = [] }
       const { map, ratio: r } = indexProducts(products)
       ratio.value = r
 
       const prev = priorRange(range)
+      const curServer = padRange(range)
+      const prevServer = prev ? padRange(prev) : null
       const [curRaw, prevRaw] = await Promise.all([
-        sweep(ordersApi.list, { ...range, order_by: '-created_at' }),
-        prev ? sweep(ordersApi.list, prev) : Promise.resolve([]),
+        sweep(ordersApi.list, { ...curServer, order_by: '-created_at' }),
+        prevServer ? sweep(ordersApi.list, prevServer) : Promise.resolve([]),
       ])
 
+      const curInRange = (range.date_from && range.date_to)
+        ? curRaw.filter(o => inRange(o, range.date_from, range.date_to))
+        : curRaw
+
       let exact = 0, estimated = 0, items = 0
-      orders.value = curRaw.map(o => {
+      orders.value = curInRange.map(o => {
         const _p = computeOrder(o, map, r)
         if (_p.estimated) estimated++; else exact++
         items += _p.units
@@ -198,8 +226,11 @@ export function useProfitAnalytics() {
       })
       coverage.value = { exact, estimated, items }
 
-      const pt = { revenue: 0, profit: 0, orders: prevRaw.length }
-      for (const o of prevRaw) {
+      const prevInRange = (prev && prev.date_from && prev.date_to)
+        ? prevRaw.filter(o => inRange(o, prev.date_from, prev.date_to))
+        : prevRaw
+      const pt = { revenue: 0, profit: 0, orders: prevInRange.length }
+      for (const o of prevInRange) {
         const c = computeOrder(o, map, r)
         pt.revenue += c.revenue
         pt.profit += c.profit

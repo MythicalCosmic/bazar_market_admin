@@ -98,5 +98,17 @@ export function useFormat() {
     return String(val).split('T')[0]
   }
 
-  return { price, compact, date, datetime, relativeTime, initials, cleanParams, fullName, isoDateOnly }
+  return { price, compact, date, datetime, relativeTime, initials, cleanParams, fullName, isoDateOnly, dayKey }
+}
+
+// Local calendar day (YYYY-MM-DD) for a Date or timestamp, using the *browser's*
+// timezone — never UTC. `toISOString().slice(0,10)` was the old approach and it
+// silently shifted every figure by a day for UTC+5 (Uzbekistan), which is why the
+// "Bugun / Today" range showed nothing. Exported standalone so non-component code
+// (the analytics engine) can use it too.
+export function dayKey(input = new Date()) {
+  const d = input instanceof Date ? input : new Date(input)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }

@@ -5,6 +5,7 @@
       <CourierMap
         ref="mapRef"
         :destination="destination"
+        :bottom-inset="sheetHeight"
         @route="onRoute"
         @position="onPosition"
       />
@@ -382,8 +383,11 @@ const destination = computed(() => {
   const a = selected.value.address
   const lat = Number(a?.latitude ?? selected.value.delivery_latitude ?? selected.value.latitude)
   const lng = Number(a?.longitude ?? selected.value.delivery_longitude ?? selected.value.longitude)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-  return { lat, lng, label: addressOf(selected.value) }
+  const label = addressOf(selected.value)
+  if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng, label }
+  // No stored coordinates — hand the address text to the map for Yandex geocoding.
+  if (label) return { lat: null, lng: null, label, query: label }
+  return null
 })
 
 function addressOf(o) {

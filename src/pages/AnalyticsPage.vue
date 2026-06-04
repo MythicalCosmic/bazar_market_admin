@@ -207,11 +207,10 @@ const PAY_LABELS = { cash: 'Naqd', click: 'Click', payme: 'Payme', card: 'Karta'
 const payLabel = m => PAY_LABELS[(m || '').toLowerCase()] || (m ? m[0].toUpperCase() + m.slice(1) : '—')
 
 function rangeFor() {
-  const iso = d => d.toISOString().slice(0, 10)
   if (custom.on && custom.from && custom.to) return { date_from: custom.from, date_to: custom.to }
   const to = new Date(); const from = new Date()
   if (preset.value !== 'today') from.setDate(from.getDate() - (Number(preset.value) - 1))
-  return { date_from: iso(from), date_to: iso(to) }
+  return { date_from: fmt.dayKey(from), date_to: fmt.dayKey(to) }
 }
 function reload() { appliedRange.value = rangeFor(); load(appliedRange.value) }
 function setPreset(v) { if (!v) return; preset.value = v; custom.on = false; reload() }
@@ -271,12 +270,12 @@ const axis = computed(() => {
   const { date_from, date_to } = appliedRange.value
   const days = []
   if (date_from && date_to) {
-    const cur = new Date(date_from); const end = new Date(date_to); let g = 0
-    while (cur <= end && g++ < 400) { days.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1) }
+    const cur = new Date(`${date_from}T00:00:00`); const end = new Date(`${date_to}T00:00:00`); let g = 0
+    while (cur <= end && g++ < 400) { days.push(fmt.dayKey(cur)); cur.setDate(cur.getDate() + 1) }
   }
   const b = new Map(days.map(d => [d, { revenue: 0, cost: 0, profit: 0 }]))
   for (const o of filtered.value) {
-    const k = (o.created_at || '').slice(0, 10); const e = b.get(k); if (!e) continue
+    const k = fmt.dayKey(o.created_at); const e = b.get(k); if (!e) continue
     e.revenue += o._p.revenue; e.cost += o._p.cost; e.profit += o._p.profit
   }
   return {
