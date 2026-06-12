@@ -805,11 +805,13 @@ async function loadProductStats() {
       if (p.discount && p.discounted_price && p.discounted_price !== p.price) discounted++
     })
 
+    // api.low_stock is a list of low-stock products, not a count
+    const apiLowStock = Array.isArray(api.low_stock) ? api.low_stock.length : api.low_stock
     pStats.value = {
       total:      api.total || all.length,
       active:     api.active ?? all.filter(p => p.is_active).length,
       inStock:    api.in_stock ?? inStock,
-      lowStock:   api.low_stock ?? lowStock,
+      lowStock:   apiLowStock ?? lowStock,
       totalValue: totalValue,
       discounted: api.with_discount ?? discounted,
     }
