@@ -3,7 +3,8 @@
     <!-- ── Header ──────────────────────────────────────────────── -->
     <header class="dx-head bz-rise">
       <div class="dx-head-titles">
-        <div class="page-title">Moliyaviy panel</div>
+        <div class="eyebrow">Moliyaviy ko'rsatkichlar</div>
+        <div class="page-title">Boshqaruv paneli</div>
         <div class="page-subtitle">{{ welcome }} · {{ rangeLabel }} · sof foyda real vaqtda hisoblanadi</div>
       </div>
 
@@ -73,6 +74,23 @@
         <div v-if="k.sub" class="dx-kpi-sub">{{ k.sub }}</div>
         <div v-if="k.series" class="dx-kpi-spark">
           <Sparkline v-if="!loading && k.series.length" :series="k.series" :color="k.color" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stat tiles strip (6 animated metrics) ───────────────── -->
+    <div class="dx-tiles">
+      <div
+        v-for="(t, i) in statTiles" :key="t.label"
+        class="dx-tile bz-card bz-rise" :style="`animation-delay:${i * 40}ms`"
+      >
+        <div class="dx-tile-l"><span class="dx-tile-ic" :style="`color:${cssColor(t.color)};background:${cssColor(t.color)}1f`"><v-icon size="14">{{ t.icon }}</v-icon></span>{{ t.label }}</div>
+        <div class="dx-tile-v num">
+          <span v-if="loading" class="bz-skeleton" style="display:block;width:55%;height:22px;border-radius:7px;margin-top:8px" />
+          <template v-else>{{ t.value }}</template>
+        </div>
+        <div v-if="!loading && t.spark.length" class="dx-tile-spark">
+          <Sparkline :series="t.spark" :color="cssColor(t.color)" />
         </div>
       </div>
     </div>
@@ -221,6 +239,88 @@
         <BzEmptyState v-else icon="mdi-account-off-outline" title="Xodim biriktirilmagan" subtitle="Buyurtmalarda kuryer/xodim ma'lumoti yo'q" />
       </section>
 
+      <!-- Weekday profit -->
+      <section class="bz-card dx-pad dx-c-weekday">
+        <header class="dx-wh"><div class="dx-wt">Hafta kunlari bo'yicha foyda</div></header>
+        <BzSkeleton v-if="loading" type="chart" :height="200" />
+        <BarChart
+          v-else :series="[{ name: 'Foyda', data: weekdayProfit }]" :categories="WEEKDAYS"
+          :colors="[accentHex]" :format-y="v => fmt.compact(v)" :height="210"
+        />
+      </section>
+
+      <!-- Hourly revenue -->
+      <section class="bz-card dx-pad dx-c-hour">
+        <header class="dx-wh"><div class="dx-wt">Soatlar bo'yicha sotuv</div></header>
+        <BzSkeleton v-if="loading" type="chart" :height="200" />
+        <BarChart
+          v-else :series="[{ name: 'Sotuv', data: hourlyRevenue }]" :categories="HOUR_CATS"
+          :colors="[infoHex]" :format-y="v => fmt.compact(v)" :height="210"
+        />
+      </section>
+
+      <!-- Activity heatmap -->
+      <section class="bz-card dx-pad dx-c-heat">
+        <header class="dx-wh"><div class="dx-wt">Faollik xaritasi</div><div class="dx-ws">Kun × soat · sotuv</div></header>
+        <div class="dx-heat">
+          <div v-for="(row, ri) in heatData.rows" :key="ri" class="dx-heat-row">
+            <span class="dx-heat-lbl">{{ WEEKDAYS[ri] }}</span>
+            <span
+              v-for="(v, ci) in row" :key="ci" class="dx-heat-cell"
+              :style="`background:color-mix(in srgb, var(--accent) ${Math.round(v * 100)}%, var(--surface-3))`"
+              :title="`${WEEKDAYS[ri]} ${heatData.cols[ci]}`"
+            />
+          </div>
+          <div class="dx-heat-cols">
+            <span />
+            <span v-for="(c, ci) in heatData.cols" :key="ci" class="dx-heat-col">{{ c }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live orders feed -->
+      <section class="bz-card dx-pad dx-c-feed">
+        <header class="dx-wh"><div class="dx-wt" style="display:flex;align-items:center;gap:9px"><span class="dx-live-dot" />Jonli buyurtmalar</div></header>
+        <template v-if="loading"><BzSkeleton v-for="n in 6" :key="n" type="row" /></template>
+        <template v-else-if="recentOrders.length">
+          <div v-for="(o, i) in recentOrders" :key="o.id" class="dx-feed-item bz-rise" :style="`animation-delay:${i * 60}ms`">
+            <span class="dx-feed-dot" :style="`background:${statusColor(o.status)}`" />
+            <span class="dx-feed-id"><span class="hash">#</span>{{ o.order_number }}</span>
+            <span class="dx-feed-name">{{ custName(o) }}</span>
+            <span class="num dx-feed-amt">{{ fmt.compact(o._p.revenue) }}</span>
+            <span class="dx-feed-time">{{ fmt.relativeTime(o.created_at) }}</span>
+          </div>
+        </template>
+        <BzEmptyState v-else icon="mdi-bell-outline" title="Buyurtma yo'q" />
+      </section>
+
+      <!-- Monthly targets -->
+      <section class="bz-card dx-pad dx-c-targets">
+        <header class="dx-wh"><div class="dx-wt">Oylik maqsadlar</div></header>
+        <div v-for="g in targets" :key="g.label" class="dx-target">
+          <div class="dx-target-head">
+            <span>{{ g.label }}</span>
+            <span><b>{{ g.money ? fmt.compact(g.cur) : g.cur }}</b> <span style="color:var(--muted)">/ {{ g.money ? fmt.compact(g.target) : g.target }}</span></span>
+          </div>
+          <div class="dx-mbar"><i :style="`width:${g.pct}%;background:${g.pct > 80 ? accentHex : g.pct > 50 ? infoHex : warnHex}`" /></div>
+        </div>
+      </section>
+
+      <!-- Operational health gauges -->
+      <section class="bz-card dx-pad dx-c-gauges">
+        <header class="dx-wh"><div class="dx-wt">Operatsion holat</div></header>
+        <div class="dx-gauges">
+          <div><RadialChart :value="gauge.fulfillment" label="Yetkazildi" :color="accentHex" :height="150" /></div>
+          <div><RadialChart :value="gauge.paidPct" label="To'langan" :color="infoHex" :height="150" /></div>
+          <div class="dx-gauge-metrics">
+            <div class="dx-gmetric"><span>Bekor</span><span class="pill" :class="gauge.cancelRate < 10 ? 'good' : 'warn'">{{ gauge.cancelRate }}%</span></div>
+            <div class="dx-gmetric"><span>Qaytarish</span><span class="pill" :class="gauge.refundRate < 8 ? 'good' : 'bad'">{{ gauge.refundRate }}%</span></div>
+            <div class="dx-gmetric"><span>Marja</span><span class="pill good">{{ gauge.margin }}%</span></div>
+            <div class="dx-gmetric"><span>Buyurtma</span><span class="pill info">{{ totals.count }}</span></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ── The admin table ─────────────────────────────────────── -->
       <section class="bz-card dx-c-table">
         <div class="dx-tbar">
@@ -307,10 +407,12 @@ import { useProfitAnalytics } from '@/composables/useProfitAnalytics'
 import { useFormat, ORDER_STATUS } from '@/composables/useFormat'
 import { useAuthStore } from '@/stores/auth'
 import { useSnackStore } from '@/stores/snack'
+import { useThemeStore } from '@/stores/theme'
 import BzStatusChip from '@/components/common/BzStatusChip.vue'
 import BzSkeleton   from '@/components/common/BzSkeleton.vue'
 import BzEmptyState from '@/components/common/BzEmptyState.vue'
 import LineChart    from '@/components/common/charts/LineChart.vue'
+import BarChart     from '@/components/common/charts/BarChart.vue'
 import DonutChart   from '@/components/common/charts/DonutChart.vue'
 import RadialChart  from '@/components/common/charts/RadialChart.vue'
 import Sparkline    from '@/components/common/charts/Sparkline.vue'
@@ -320,6 +422,7 @@ const auth  = useAuthStore()
 const snack = useSnackStore()
 const theme = inject('theme', null)
 const isDark = computed(() => theme?.value === 'dark')
+const themeStore = useThemeStore()
 
 const { loading, orders, prevTotals, ratio, coverage, load } = useProfitAnalytics()
 
@@ -523,6 +626,95 @@ const marginColor = computed(() => {
   return m >= 25 ? '#10B981' : m >= 12 ? '#F59E0B' : '#F43F5E'
 })
 
+// ── Theme-aware colour resolution (recomputes on theme/accent change) ────
+function readVar(name) {
+  if (typeof document === 'undefined') return ''
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+const accentHex = computed(() => { void themeStore.accent; void themeStore.themeId; return readVar('--accent') || '#2f6df0' })
+const infoHex   = computed(() => { void themeStore.themeId; void themeStore.accent; return readVar('--info') || '#2f6df0' })
+const warnHex   = computed(() => { void themeStore.themeId; return readVar('--warn') || '#c07c1b' })
+function cssColor(token) {
+  const m = /var\((--[\w-]+)\)/.exec(token || '')
+  if (m) { void themeStore.accent; void themeStore.themeId; return readVar(m[1]) || '#2f6df0' }
+  return token
+}
+const STATUS_VAR = { pending: '--warn', confirmed: '--info', preparing: '--info', delivering: '--info', delivered: '--accent', completed: '--accent', cancelled: '--bad' }
+function statusColor(s) { void themeStore.themeId; void themeStore.accent; return readVar(STATUS_VAR[s] || '--muted') || '#79818f' }
+
+// ── New design widgets: weekday/hour/heatmap/feed/targets/gauges ─────────
+const WEEKDAYS  = ['Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan', 'Yak']
+const HOUR_CATS = ['8', '10', '12', '14', '16', '18', '20', '22']
+
+const weekdayProfit = computed(() => {
+  const wd = [0, 0, 0, 0, 0, 0, 0]
+  for (const o of filtered.value) { const dd = (new Date(o.created_at).getDay() + 6) % 7; wd[dd] += o._p.profit }
+  return wd.map(v => Math.round(v))
+})
+const hourlyRevenue = computed(() => {
+  const hr = new Array(24).fill(0)
+  for (const o of filtered.value) hr[new Date(o.created_at).getHours()] += o._p.revenue
+  const out = []; for (let h = 8; h <= 22; h += 2) out.push(Math.round(hr[h] + (hr[h + 1] || 0)))
+  return out
+})
+const heatData = computed(() => {
+  const buckets = [8, 10, 12, 14, 16, 18, 20]
+  const heat = Array.from({ length: 7 }, () => new Array(buckets.length).fill(0))
+  for (const o of filtered.value) {
+    const dt = new Date(o.created_at); const wd = (dt.getDay() + 6) % 7; const h = dt.getHours()
+    let bi = buckets.findIndex((hb, i) => h >= hb && h < (buckets[i + 1] || 24)); if (bi < 0) bi = h < 8 ? 0 : buckets.length - 1
+    heat[wd][bi] += o._p.revenue
+  }
+  const max = Math.max(1, ...heat.flat())
+  return { rows: heat.map(r => r.map(v => v / max)), cols: buckets.map(h => h + ':00') }
+})
+const recentOrders = computed(() =>
+  [...filtered.value].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 7)
+)
+const statTiles = computed(() => {
+  const t = totals.value
+  const refunded = filtered.value.filter(o => o.payment_status === 'refunded').length
+  const refundRate = t.count ? Math.round(refunded / t.count * 100) : 0
+  const m = {}
+  for (const o of filtered.value) { const id = o.user?.id ?? o.customer_id ?? o.customer_phone; if (id != null) m[id] = (m[id] || 0) + 1 }
+  const ids = Object.keys(m); const repeats = ids.filter(k => m[k] > 1).length
+  const repeatPct = ids.length ? Math.round(repeats / ids.length * 100) : 0
+  const fulfilled = filtered.value.filter(o => ['completed', 'delivered'].includes(o.status)).length
+  const fulfillment = t.count ? Math.round(fulfilled / t.count * 100) : 0
+  const paidPct = t.revenue > 0 ? Math.round(t.realized / t.revenue * 100) : 0
+  const avgItems = t.count ? +(t.units / t.count).toFixed(1) : 0
+  return [
+    { label: "O'rtacha buyurtma", value: fmt.compact(t.avgOrder), icon: 'mdi-wallet-outline', spark: axis.value.revenue.slice(-14), color: 'var(--accent)' },
+    { label: 'Mahsulot / buyurtma', value: avgItems, icon: 'mdi-package-variant-closed', spark: axis.value.orders.slice(-14), color: 'var(--info)' },
+    { label: 'Yetkazildi', value: fulfillment + '%', icon: 'mdi-check-circle-outline', spark: axis.value.profit.slice(-14), color: 'var(--good)' },
+    { label: "To'langan", value: paidPct + '%', icon: 'mdi-cash-check', spark: axis.value.revenue.slice(-14), color: 'var(--accent)' },
+    { label: 'Qaytarish', value: refundRate + '%', icon: 'mdi-backup-restore', spark: axis.value.cost.slice(-14), color: 'var(--bad)' },
+    { label: 'Takroriy mijoz', value: repeatPct + '%', icon: 'mdi-account-heart-outline', spark: axis.value.orders.slice(-14), color: 'var(--accent)' },
+  ]
+})
+const targets = computed(() => {
+  const t = totals.value
+  const targetRev = Math.max(50e6, Math.round((t.revenue * 1.25) / 1e6) * 1e6)
+  return [
+    { label: 'Sotuv maqsadi', cur: t.revenue, target: targetRev, money: true },
+    { label: 'Foyda maqsadi', cur: t.profit, target: Math.round(targetRev * 0.35), money: true },
+    { label: 'Buyurtma maqsadi', cur: t.count, target: Math.max(t.count + 40, 200), money: false },
+  ].map(g => ({ ...g, pct: Math.min(100, g.target ? Math.round(g.cur / g.target * 100) : 0) }))
+})
+const gauge = computed(() => {
+  const t = totals.value
+  const fulfilled = filtered.value.filter(o => ['completed', 'delivered'].includes(o.status)).length
+  const cancelled = filtered.value.filter(o => o.status === 'cancelled').length
+  const refunded = filtered.value.filter(o => o.payment_status === 'refunded').length
+  return {
+    fulfillment: t.count ? Math.round(fulfilled / t.count * 100) : 0,
+    paidPct: t.revenue > 0 ? Math.round(t.realized / t.revenue * 100) : 0,
+    cancelRate: t.count ? Math.round(cancelled / t.count * 100) : 0,
+    refundRate: t.count ? Math.round(refunded / t.count * 100) : 0,
+    margin: Math.round(t.margin),
+  }
+})
+
 // ── Data-quality note ───────────────────────────────────────────────────
 const coverageNote = computed(() => {
   if (ratio.value == null && !coverage.value.exact) {
@@ -655,7 +847,57 @@ onMounted(reload)
 .dx-c-pay     { grid-column: span 4; }
 .dx-c-status  { grid-column: span 4; }
 .dx-c-staff   { grid-column: span 4; }
+.dx-c-weekday { grid-column: span 6; }
+.dx-c-hour    { grid-column: span 6; }
+.dx-c-heat    { grid-column: span 7; }
+.dx-c-feed    { grid-column: span 5; }
+.dx-c-targets { grid-column: span 6; }
+.dx-c-gauges  { grid-column: span 6; }
 .dx-c-table   { grid-column: span 12; overflow: hidden; }
+
+/* Stat tiles strip */
+.dx-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }
+.dx-tile { position: relative; padding: 15px 16px 13px; overflow: hidden; min-height: 86px; }
+.dx-tile-l { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 7px; }
+.dx-tile-ic { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; }
+.dx-tile-v { font-family: var(--font-display); font-weight: var(--display-weight); font-size: 24px; margin-top: 9px; line-height: 1; letter-spacing: -0.5px; }
+.dx-tile-spark { position: absolute; right: 10px; bottom: 9px; width: 58px; height: 24px; opacity: 0.85; pointer-events: none; }
+
+/* Heatmap */
+.dx-heat { display: grid; gap: 4px; }
+.dx-heat-row { display: grid; grid-template-columns: 38px repeat(7, 1fr); gap: 4px; align-items: center; }
+.dx-heat-lbl { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.dx-heat-cell { aspect-ratio: 1; border-radius: 5px; min-height: 16px; transition: transform 0.15s var(--ease); }
+.dx-heat-cell:hover { transform: scale(1.12); }
+.dx-heat-cols { display: grid; grid-template-columns: 38px repeat(7, 1fr); gap: 4px; margin-top: 6px; }
+.dx-heat-col { font-size: 9.5px; color: var(--faint); text-align: center; font-weight: 600; }
+
+/* Live feed */
+.dx-feed-item { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid var(--bz-border); }
+.dx-feed-item:last-child { border-bottom: 0; }
+.dx-feed-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dx-feed-id { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.dx-feed-id .hash { color: var(--muted); }
+.dx-feed-name { flex: 1; min-width: 0; font-size: 13px; color: var(--bz-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dx-feed-amt { font-weight: 800; font-size: 13.5px; }
+.dx-feed-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dx-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); position: relative; }
+.dx-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--good); animation: dxLive 1.8s var(--ease) infinite; }
+@keyframes dxLive { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(3.4); opacity: 0; } }
+
+/* Targets */
+.dx-target { margin-bottom: 14px; }
+.dx-target:last-child { margin-bottom: 0; }
+.dx-target-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.dx-target-head b { font-variant-numeric: tabular-nums; font-weight: 800; }
+.dx-mbar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.dx-mbar > i { display: block; height: 100%; border-radius: 99px; transition: width 0.8s var(--ease-out); }
+
+/* Gauges */
+.dx-gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: center; }
+.dx-gauge-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.dx-gmetric { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: var(--surface-2); border-radius: 10px; }
+.dx-gmetric > span:first-child { font-size: 12.5px; color: var(--muted); }
 
 .dx-wh { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .dx-wt { font-weight: 800; font-size: 15px; letter-spacing: -0.2px; }
@@ -724,7 +966,9 @@ onMounted(reload)
 
 @media (max-width: 1240px) {
   .dx-c-trend, .dx-c-quality, .dx-c-top, .dx-c-cat,
-  .dx-c-pay, .dx-c-status, .dx-c-staff { grid-column: span 12; }
+  .dx-c-pay, .dx-c-status, .dx-c-staff,
+  .dx-c-weekday, .dx-c-hour, .dx-c-heat, .dx-c-feed,
+  .dx-c-targets, .dx-c-gauges { grid-column: span 12; }
 }
 @media (max-width: 760px) {
   .dx-kpis { grid-template-columns: 1fr 1fr; }

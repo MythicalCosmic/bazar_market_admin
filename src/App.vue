@@ -1,5 +1,5 @@
 <template>
-  <v-app :theme="theme">
+  <v-app :theme="themeStore.vuetifyName">
     <router-view />
 
     <!-- Global snackbar -->
@@ -33,18 +33,18 @@ import { useStorage, useMagicKeys, whenever } from '@vueuse/core'
 import { useSnackStore } from '@/stores/snack'
 import { useAuthStore } from '@/stores/auth'
 import { usePaletteStore } from '@/stores/palette'
+import { useThemeStore } from '@/stores/theme'
 import BzCommandPalette from '@/components/common/BzCommandPalette.vue'
 
-const snack   = useSnackStore()
-const auth    = useAuthStore()
-const palette = usePaletteStore()
+const snack      = useSnackStore()
+const auth       = useAuthStore()
+const palette    = usePaletteStore()
+const themeStore = useThemeStore()
 
-const themeRaw = useStorage('bz-theme', 'dark')
-const theme    = computed(() => themeRaw.value === 'dark' ? 'dark' : 'light')
-
-function toggleTheme() {
-  themeRaw.value = themeRaw.value === 'dark' ? 'light' : 'dark'
-}
+// Legacy injection contract kept for components that inject 'theme' /
+// 'toggleTheme' — backed by the new multi-theme store (light/dark axis).
+const theme = computed(() => (themeStore.isDark ? 'dark' : 'light'))
+function toggleTheme() { themeStore.toggleDark() }
 
 // "Reduce effects" — disables live blur + animation globally via [data-bz-lite].
 const lite = useStorage('bz-lite', false)

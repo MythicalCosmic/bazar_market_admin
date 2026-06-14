@@ -1,15 +1,10 @@
 <template>
-  <v-app theme="dark">
+  <v-app :theme="themeStore.vuetifyName">
     <div class="login-bg d-flex align-center justify-center" style="min-height:100vh;position:relative;overflow:hidden">
-      <div class="bz-mesh bz-mesh-1" />
-      <div class="bz-mesh bz-mesh-2" />
-      <div class="bz-mesh bz-mesh-3" />
-
       <v-card
         v-motion
         :initial="{ opacity: 0, scale: 0.96, y: 20 }"
         :enter="{ opacity: 1, scale: 1, y: 0, transition: { duration: 480 } }"
-        rounded="xl"
         class="pa-8 bz-login-card"
       >
         <!-- Logo -->
@@ -22,8 +17,8 @@
           >
             <v-icon color="white" size="32">mdi-storefront</v-icon>
           </div>
-          <div style="font-size:25px;font-weight:800;letter-spacing:-0.7px" class="bz-gradient-text">Bazar Market</div>
-          <div style="font-size:13px;color:var(--bz-text-3);margin-top:3px;font-weight:600">Admin Panel</div>
+          <div class="serif" style="font-size:25px;font-weight:800;letter-spacing:-0.02em;color:var(--ink)">Bazar Market</div>
+          <div class="eyebrow" style="margin-top:6px">Admin Panel</div>
         </div>
 
         <v-form ref="formRef" @submit.prevent="submit">
@@ -80,7 +75,9 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 
+const themeStore = useThemeStore()
 const auth     = useAuthStore()
 const router   = useRouter()
 const formRef  = ref()
@@ -108,28 +105,26 @@ async function submit() {
 
 <style scoped>
 .login-bg {
-  background: linear-gradient(180deg, #070C16 0%, #0B1220 100%);
+  background:
+    radial-gradient(circle at 20% 0%, var(--accent-soft), transparent 45%),
+    radial-gradient(circle at 100% 100%, var(--accent-soft), transparent 50%),
+    var(--bg);
   padding: 16px;
 }
 .bz-login-card {
-  width: 444px;
+  width: 420px;
   max-width: 100%;
   position: relative;
-  background: rgba(17,25,44,0.72) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(160%);
-  backdrop-filter: blur(30px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  box-shadow: 0 40px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02),
-              inset 0 1px 0 rgba(255,255,255,0.08) !important;
-}
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .bz-login-card { background: #0E1626 !important; }
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 .bz-login-mark {
-  width: 66px; height: 66px;
-  background: linear-gradient(135deg, #059669, #34D399);
-  border-radius: 19px;
-  box-shadow: 0 14px 40px rgba(16,185,129,0.45), inset 0 1px 0 rgba(255,255,255,0.4);
+  width: 64px; height: 64px;
+  background: var(--accent);
+  border-radius: 18px;
+  box-shadow: 0 14px 36px -10px var(--accent), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 @media (max-width: 600px) {
   .bz-login-card { padding: 24px !important; }
@@ -143,14 +138,14 @@ async function submit() {
    that only swaps the border colour (no jarring fill jump). */
 .bz-login-card :deep(.v-field) {
   border-radius: var(--bz-radius-md);
-  background: rgba(255,255,255,0.04);
+  background: var(--surface-2);
 }
 .bz-login-card :deep(.v-field__outline) {
   --v-field-border-opacity: 1;
-  color: rgba(255,255,255,0.16);
+  color: var(--line-strong);
 }
 .bz-login-card :deep(.v-field--focused .v-field__outline) {
-  color: var(--bz-primary);
+  color: var(--accent);
 }
 /* The focus glow rounds at radius-md, but Vuetify's outline segments keep the
    default ~4px corners — so a focused field looked rounder than an empty one.

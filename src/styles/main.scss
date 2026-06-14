@@ -1,5 +1,12 @@
 @use './tokens';
 
+// ──────────────────────────────────────────────────────────────
+//  Bazar Market — global stylesheet (Crisp Modern redesign)
+//  Glass + aurora removed → flat surfaces, Manrope type, thin
+//  hairline borders, modern shadows. Legacy class names kept so
+//  the existing pages/components restyle without edits.
+// ──────────────────────────────────────────────────────────────
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -10,107 +17,93 @@ html, body {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--bz-text-1);
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
 // ──────────────────────────────────────────────────────────────
-//  Aurora canvas — static CSS gradients (no JS / no canvas).
-//  The Vuetify app surface is transparent so this shows through.
+//  Flat app surface — no aurora, no blur.
 // ──────────────────────────────────────────────────────────────
 .v-application {
-  background: var(--bz-canvas) !important;
-  background-attachment: fixed;
+  background: var(--bg) !important;
+  font-family: var(--font-ui);
 }
 .v-application__wrap { background: transparent; }
 
 // ──────────────────────────────────────────────────────────────
-//  THE glass recipe. One place — every surface reuses it.
-//  Performance: live blur is only ever applied to small fixed
-//  chrome (see usage). Fallbacks collapse it to a solid fill.
+//  Cards / surfaces — solid, hairline border, crisp shadow.
 // ──────────────────────────────────────────────────────────────
 .bz-glass {
   position: relative;
-  background: var(--bz-glass-bg-strong);
-  -webkit-backdrop-filter: blur(var(--bz-glass-blur)) saturate(160%);
-  backdrop-filter: blur(var(--bz-glass-blur)) saturate(160%);
-  border: 1px solid var(--bz-glass-border);
-  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-// Frosted glass card — real translucency + blur so the aurora shows through.
 .bz-card {
   position: relative;
-  background: var(--bz-glass-bg);
-  border: 1px solid var(--bz-glass-border);
-  border-radius: var(--bz-radius-xl);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
-  transition: box-shadow var(--bz-dur) var(--bz-ease),
-              transform var(--bz-dur) var(--bz-ease),
-              border-color var(--bz-dur) var(--bz-ease);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: box-shadow var(--bz-dur) var(--ease),
+              transform var(--bz-dur) var(--ease),
+              border-color var(--bz-dur) var(--ease);
 }
 .bz-card-hover { cursor: pointer; }
 .bz-card-hover:hover {
-  box-shadow: var(--bz-glow-soft), var(--bz-shadow-lg), inset 0 1px 0 var(--bz-glass-highlight);
+  box-shadow: var(--shadow);
   transform: translateY(-3px);
-  border-color: var(--bz-primary-glow);
+  border-color: var(--line-strong);
 }
 
-// Vuetify cards inherit the same frosted-glass look by default.
+// Vuetify cards inherit the same crisp-modern look by default.
 .v-card.v-theme--light,
 .v-card.v-theme--dark {
-  background: var(--bz-glass-bg) !important;
-  border: 1px solid var(--bz-glass-border);
-  border-radius: var(--bz-radius-xl);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight) !important;
+  background: var(--surface) !important;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
-// Opt-in stronger glass + blur for elevated/overlay cards.
+
+// Elevated / overlay surfaces (menus, dialogs) → pop shadow, solid.
 .v-overlay__content > .v-card,
 .v-menu > .v-overlay__content > .v-card,
 .v-menu > .v-overlay__content > .v-list {
-  background: var(--bz-glass-bg-strong) !important;
-  -webkit-backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
-  backdrop-filter: blur(var(--bz-glass-blur-lg)) saturate(170%);
-  border: 1px solid var(--bz-glass-border) !important;
-  box-shadow: var(--bz-shadow-lg), inset 0 1px 0 var(--bz-glass-highlight) !important;
+  background: var(--surface) !important;
+  color: var(--ink);
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
+.v-menu > .v-overlay__content > .v-list { border-radius: var(--radius) !important; }
 
-// ── Fallback 1: browser can't do backdrop-filter → solid fills ──
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .bz-glass, .bz-card,
-  .v-card.v-theme--light, .v-card.v-theme--dark,
-  .v-overlay__content > .v-card,
-  .v-menu > .v-overlay__content > .v-card,
-  .v-menu > .v-overlay__content > .v-list {
-    background: var(--bz-glass-bg-solid) !important;
-  }
-}
-
-// ── Fallback 2: user asked to reduce effects (data-bz-lite) ─────
+// ── Reduce-effects toggle (data-bz-lite) → kill animations ─────
 [data-bz-lite] {
-  .bz-glass, .bz-card,
-  .v-card.v-theme--light, .v-card.v-theme--dark,
-  .v-overlay__content > .v-card,
-  .v-menu > .v-overlay__content > .v-card,
-  .v-menu > .v-overlay__content > .v-list {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    background: var(--bz-glass-bg-solid) !important;
-  }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
 }
 
-// ── Fallback 3: OS reduced-motion → no drift/entrance animation ─
+// ── OS reduced-motion → no entrance animation ──────────────────
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -124,116 +117,99 @@ body {
 //  Typography
 // ──────────────────────────────────────────────────────────────
 .page-title {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.7px;
-  line-height: 1.12;
-  color: var(--bz-text-1);
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--ink);
 }
 .page-subtitle {
-  font-size: 13px;
-  color: var(--bz-text-3);
-  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-top: 6px;
   font-weight: 500;
 }
 .section-label {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--bz-text-3);
+  color: var(--muted);
 }
-.num {
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.num, .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
-// Gradient-emerald display text for hero numbers.
+.serif {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+}
+// Hero numbers — solid ink (gradient text removed for crisp look).
 .bz-gradient-text {
-  background: linear-gradient(120deg, var(--bz-primary-strong), var(--bz-primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  color: var(--ink);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 // ──────────────────────────────────────────────────────────────
-//  Stat card — glass + emerald glow on hover
+//  Stat card — flat, lifts on hover (no glow)
 // ──────────────────────────────────────────────────────────────
 .stat-card {
   position: relative;
-  background: var(--bz-glass-bg);
-  border: 1px solid var(--bz-border);
-  border-radius: var(--bz-radius-lg) !important;
-  box-shadow: var(--bz-shadow-sm), inset 0 1px 0 var(--bz-glass-highlight);
-  transition: box-shadow var(--bz-dur) var(--bz-ease),
-              transform var(--bz-dur) var(--bz-ease),
-              border-color var(--bz-dur) var(--bz-ease);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--bz-dur) var(--ease),
+              transform var(--bz-dur) var(--ease),
+              border-color var(--bz-dur) var(--ease);
   overflow: hidden;
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(120% 120% at 100% 0%, var(--bz-primary-soft), transparent 60%);
-    opacity: 0;
-    transition: opacity var(--bz-dur) var(--bz-ease);
-    pointer-events: none;
-  }
+  &::after { content: none; }
   &:hover {
-    box-shadow: var(--bz-glow-soft), var(--bz-shadow-md), inset 0 1px 0 var(--bz-glass-highlight);
+    box-shadow: var(--shadow);
     transform: translateY(-3px);
-    border-color: var(--bz-primary-glow);
-    &::after { opacity: 1; }
+    border-color: var(--line-strong);
   }
 }
 
 // ──────────────────────────────────────────────────────────────
-//  Sidebar nav item — animated active pill w/ emerald glow
+//  Sidebar nav item — used inside the dark sidebar panel.
+//  (AdminLayout adds its own scoped rules; these are the shared
+//  fallbacks for any v-list-item.nav-item.)
 // ──────────────────────────────────────────────────────────────
 .nav-item {
   position: relative;
-  transition: background var(--bz-dur-fast) var(--bz-ease),
-              color var(--bz-dur-fast) var(--bz-ease);
+  transition: background var(--bz-dur-fast) var(--ease),
+              color var(--bz-dur-fast) var(--ease);
   font-size: 13.5px;
   font-weight: 600;
-  border-radius: var(--bz-radius-md) !important;
+  border-radius: 10px !important;
   margin-bottom: 2px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 9px;
-    bottom: 9px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: transparent;
-    transition: background var(--bz-dur) var(--bz-ease),
-                transform var(--bz-dur) var(--bz-ease-spring);
-    transform: scaleY(0);
-  }
-  &:hover { background: var(--bz-primary-soft); }
-  &.v-list-item--active {
-    background: var(--bz-primary-soft) !important;
-    color: var(--bz-primary-strong) !important;
-    box-shadow: inset 0 0 0 1px var(--bz-primary-glow);
-    .v-icon { color: var(--bz-primary) !important; }
-    &::before { background: var(--bz-primary); transform: scaleY(1); }
-  }
 }
-.v-theme--dark .nav-item.v-list-item--active { color: var(--bz-primary) !important; }
 
 .chip-sm {
   font-size: 11px !important;
   font-weight: 700 !important;
-  height: 22px !important;
-  padding: 0 8px !important;
-  border-radius: var(--bz-radius-pill) !important;
+  height: 20px !important;
+  padding: 0 7px !important;
+  border-radius: 999px !important;
 }
 
 .cursor-pointer { cursor: pointer; }
 
-// Compact KPI rail — used on dashboards and list pages for a consistent,
-// dense metric strip (auto-fits tiles across the available width).
+// Compact KPI rail — dense metric strip on dashboards / list pages.
 .bz-kpi-rail {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -244,25 +220,24 @@ body {
 // ──────────────────────────────────────────────────────────────
 //  Transitions
 // ──────────────────────────────────────────────────────────────
-.bz-page-enter-active { transition: opacity var(--bz-dur-slow) var(--bz-ease-out), transform var(--bz-dur-slow) var(--bz-ease-out); }
-.bz-page-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease); }
-.bz-page-enter-from   { opacity: 0; transform: translateY(10px) scale(0.995); }
+.bz-page-enter-active { transition: opacity var(--bz-dur-slow) var(--ease-out), transform var(--bz-dur-slow) var(--ease-out); }
+.bz-page-leave-active { transition: opacity var(--bz-dur-fast) var(--ease); }
+.bz-page-enter-from   { opacity: 0; transform: translateY(10px); }
 .bz-page-leave-to     { opacity: 0; }
 
-.fade-enter-active, .fade-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease); }
+.fade-enter-active, .fade-leave-active { transition: opacity var(--bz-dur-fast) var(--ease); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.bz-slide-up-enter-active { transition: opacity var(--bz-dur) var(--bz-ease-out), transform var(--bz-dur) var(--bz-ease-out); }
-.bz-slide-up-leave-active { transition: opacity var(--bz-dur-fast) var(--bz-ease), transform var(--bz-dur-fast) var(--bz-ease); }
+.bz-slide-up-enter-active { transition: opacity var(--bz-dur) var(--ease-out), transform var(--bz-dur) var(--ease-out); }
+.bz-slide-up-leave-active { transition: opacity var(--bz-dur-fast) var(--ease), transform var(--bz-dur-fast) var(--ease); }
 .bz-slide-up-enter-from   { opacity: 0; transform: translateY(16px); }
 .bz-slide-up-leave-to     { opacity: 0; transform: translateY(8px); }
 
-// Staggered entrance for grids/lists (apply .bz-rise to items).
 @keyframes bz-rise {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.bz-rise { animation: bz-rise var(--bz-dur-slow) var(--bz-ease-out) both; }
+.bz-rise { animation: bz-rise var(--bz-dur-slow) var(--ease-out) both; }
 
 // ──────────────────────────────────────────────────────────────
 //  Skeleton shimmer
@@ -273,68 +248,85 @@ body {
 }
 .bz-skeleton {
   background: linear-gradient(90deg,
-    var(--bz-surface-3) 0%,
-    color-mix(in srgb, var(--bz-surface-3) 60%, white) 50%,
-    var(--bz-surface-3) 100%);
+    var(--surface-3) 0%,
+    color-mix(in srgb, var(--surface-3) 55%, var(--surface)) 50%,
+    var(--surface-3) 100%);
   background-size: 960px 100%;
   animation: bz-shimmer 1.4s linear infinite;
-  border-radius: var(--bz-radius-sm);
-}
-.v-theme--dark .bz-skeleton {
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.04) 0%,
-    rgba(255,255,255,0.09) 50%,
-    rgba(255,255,255,0.04) 100%);
-  background-size: 960px 100%;
+  border-radius: var(--radius-sm);
 }
 
 // ──────────────────────────────────────────────────────────────
-//  Data table — comfortable by default (UX research applied)
+//  Data table — crisp, uppercase headers, accent hover
 // ──────────────────────────────────────────────────────────────
 .v-data-table {
   background: transparent !important;
+  color: var(--ink);
 }
 .v-data-table .v-data-table__td {
-  font-size: 13.5px;
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
-  border-bottom: 1px solid var(--bz-border) !important;
+  font-size: 14px;
+  padding-top: 13px !important;
+  padding-bottom: 13px !important;
+  border-bottom: 1px solid var(--line-soft) !important;
+  color: var(--ink);
 }
 .v-data-table .v-data-table__th {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.5px;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--bz-text-3) !important;
-  background: transparent !important;
-  border-bottom: 1px solid var(--bz-border-strong) !important;
+  color: var(--muted) !important;
+  background: var(--surface-2) !important;
+  border-bottom: 1px solid var(--line-soft) !important;
 }
-// Sticky glass header
 .v-data-table .v-table__wrapper > table > thead {
   position: sticky;
   top: 0;
   z-index: 2;
 }
-.v-data-table tbody tr { transition: background var(--bz-dur-fast) var(--bz-ease); }
-.v-data-table tbody tr:hover > td { background: var(--bz-primary-soft); }
+.v-data-table tbody tr { transition: background var(--bz-dur-fast) var(--ease); }
+.v-data-table tbody tr:hover > td { background: var(--surface-2); }
 
 // ──────────────────────────────────────────────────────────────
 //  Buttons / fields polish
 // ──────────────────────────────────────────────────────────────
-.v-btn { transition: transform var(--bz-dur-fast) var(--bz-ease), box-shadow var(--bz-dur) var(--bz-ease) !important; }
-.v-btn:active { transform: scale(0.97); }
+.v-btn {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: transform var(--bz-dur-fast) var(--ease), box-shadow var(--bz-dur) var(--ease) !important;
+}
+.v-btn:active { transform: translateY(1px); }
 .v-btn--variant-flat.bg-primary,
 .v-btn--variant-flat.text-primary,
-.v-btn.bg-primary { box-shadow: var(--bz-glow-soft); }
+.v-btn.bg-primary { box-shadow: var(--shadow-sm); }
+.v-btn--variant-flat.bg-primary:hover { box-shadow: var(--shadow); }
 
-.v-field--focused .v-field__outline { box-shadow: var(--bz-shadow-glow); border-radius: var(--bz-radius-md); }
+.v-field--focused .v-field__outline {
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  border-radius: var(--radius-sm);
+}
+
+// status / pill helpers shared across pages
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600;
+  padding: 4px 11px 4px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pill .pd { width: 6px; height: 6px; border-radius: 50%; }
+.pill.good { background: var(--good-soft); color: var(--good); } .pill.good .pd { background: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.warn .pd { background: var(--warn); }
+.pill.bad  { background: var(--bad-soft);  color: var(--bad); }  .pill.bad .pd  { background: var(--bad); }
+.pill.info { background: var(--info-soft); color: var(--info); } .pill.info .pd { background: var(--info); }
+.pill.neutral { background: var(--surface-3); color: var(--muted); } .pill.neutral .pd { background: var(--muted); }
 
 // ──────────────────────────────────────────────────────────────
 //  Scrollbars
 // ──────────────────────────────────────────────────────────────
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--bz-border-strong); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: var(--bz-text-3); }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: content-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 // Leaflet z-index fixes (under Vuetify dialogs)
@@ -350,10 +342,10 @@ body {
 .bz-card .v-data-table, .v-card .v-data-table { max-width: 100%; }
 
 @media (max-width: 960px) {
-  .page-title { font-size: 20px; letter-spacing: -0.4px; }
-  .page-subtitle { font-size: 12px; }
+  .page-title { font-size: 22px; letter-spacing: -0.01em; }
+  .page-subtitle { font-size: 13px; }
   .v-data-table .v-data-table__td,
-  .v-data-table .v-data-table__th { font-size: 12.5px !important; padding-left: 10px !important; padding-right: 10px !important; }
+  .v-data-table .v-data-table__th { font-size: 13px !important; padding-left: 10px !important; padding-right: 10px !important; }
   .v-overlay__content > .v-card,
   .v-dialog > .v-overlay__content { max-width: calc(100vw - 24px) !important; }
   .bz-filterbar-stack > * { width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
@@ -366,7 +358,7 @@ body {
 }
 
 @media (max-width: 600px) {
-  .page-title { font-size: 19px; }
+  .page-title { font-size: 20px; }
   .v-dialog > .v-overlay__content { margin: 12px !important; max-width: calc(100vw - 24px) !important; }
   .v-pagination__list { gap: 2px; }
   .v-pagination .v-btn { --v-btn-height: 32px !important; min-width: 32px !important; }
